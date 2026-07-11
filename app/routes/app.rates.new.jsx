@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 import { useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import styles from "../app.module.css";
@@ -50,6 +51,44 @@ const blankRate = () => ({
   currency: "Default Store Currency",
   calculation: "Fixed rate",
   price: "",
+  roundUp: false,
+  metafieldKey: "",
+  increasePerItem: false,
+  defaultRate: "",
+  rateType: "Range",
+  rangeStart: "",
+  rangeEnd: "",
+  basePrice: "",
+  incrementalPrice: "",
+  perEach: "",
+  startFrom: "",
+  priceCalculation: "Number of items",
+  secondRangeStart: "",
+  secondRangeEnd: "",
+  googleMapsApiKey: "",
+  originLocation: "Default Shopify Location",
+  originCountry: "US",
+  originPostcode: "",
+  distanceMethod: "Driving",
+  carrierApiKey: "",
+  carrierSecret: "",
+  carrierAccount: "",
+  carrierEmail: "",
+  carrierPassword: "",
+  carrierSchedule: "Retail",
+  ratesToShow: "All rates",
+  hideDeliveryDates: false,
+  packagingDistribution: "By items count",
+  packages: [{ limit: "", length: "", width: "", height: "", weight: "" }],
+  discount: "",
+  handlingPercent: "",
+  handlingFixed: "",
+  carrierRateType: "Item",
+  fuelLevy: false,
+  packageType: "Parcel",
+  signatureRequired: "No",
+  insured: "No",
+  selectedServices: [],
   tags: "",
 });
 const currencyCodes = {
@@ -68,6 +107,49 @@ const currencyCodes = {
   "Swiss Francs": "CHF",
   "Polish Zlotych": "PLN",
 };
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+const countryOptions =
+  `AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW`
+    .split(" ")
+    .map((code) => ({ code, name: regionNames.of(code) || code }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+const carrierNames = [
+  "Australia Post",
+  "USPS",
+  "Fedex",
+  "Shiprocket",
+  "Direct Freight Express",
+  "Stallion Express",
+  "ShipStation",
+];
+const uspsDomesticServices = [
+  "Priority Mail",
+  "Priority Mail Flat Rate Envelope",
+  "Priority Mail Small Flat Rate Box",
+  "Priority Mail Medium Flat Rate Box",
+  "Priority Mail Large Flat Rate Box",
+  "Priority Mail Padded Flat Rate Envelope",
+  "Priority Mail Legal Flat Rate Envelope",
+  "Priority Mail Window Flat Rate Envelope",
+  "Priority Mail Express",
+  "Priority Mail Express Flat Rate Envelope",
+  "Priority Mail Express Padded Flat Rate Envelope",
+  "First-Class Mail",
+  "Ground Advantage",
+  "Media Mail Parcel",
+  "Library Mail Parcel",
+];
+const uspsInternationalServices = [
+  "Priority Mail International",
+  "Priority Mail International Flat Rate Envelope",
+  "Priority Mail International Small Flat Rate Box",
+  "Priority Mail International Medium Flat Rate Box",
+  "Priority Mail International Large Flat Rate Box",
+  "Priority Mail Express International",
+  "First-Class Package International",
+  "Global Express Guaranteed",
+  "Global Express Guaranteed - Envelopes",
+];
 const textFields = new Set([
   "Product Title",
   "Variant Title",
@@ -274,6 +356,36 @@ const conditionBehavior = (field) => {
   };
 };
 
+function RateValueField({ label, required, value, onChange, suffix, help }) {
+  return (
+    <label>
+      <span className={required ? styles.requiredLabel : undefined}>
+        {label} {required && <b>*</b>}
+      </span>
+      <span className={styles.dynamicRateInput}>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={value}
+          onChange={onChange}
+        />
+        {suffix && <i>{suffix}</i>}
+      </span>
+      {help && <small>{help}</small>}
+    </label>
+  );
+}
+
+RateValueField.propTypes = {
+  label: PropTypes.string.isRequired,
+  required: PropTypes.bool,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  suffix: PropTypes.string,
+  help: PropTypes.string,
+};
+
 export default function NewShippingRateRule() {
   const navigate = useNavigate();
   const shopify = useAppBridge();
@@ -303,11 +415,145 @@ export default function NewShippingRateRule() {
   const closeRateModal = () => setActiveZone(null);
   const updateRate = (key, value) =>
     setRateDraft({ ...rateDraft, [key]: value });
+  const updatePackage = (index, key, value) =>
+    updateRate(
+      "packages",
+      rateDraft.packages.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [key]: value } : item,
+      ),
+    );
+  const addPackage = () =>
+    updateRate("packages", [
+      ...rateDraft.packages,
+      { limit: "", length: "", width: "", height: "", weight: "" },
+    ]);
+  const removePackage = (index) =>
+    updateRate(
+      "packages",
+      rateDraft.packages.filter((_, itemIndex) => itemIndex !== index),
+    );
+  const toggleCarrierService = (service) =>
+    updateRate(
+      "selectedServices",
+      rateDraft.selectedServices.includes(service)
+        ? rateDraft.selectedServices.filter((item) => item !== service)
+        : [...rateDraft.selectedServices, service],
+    );
+  const isMetafieldRate = ["Product Metafield", "Variant Metafield"].includes(
+    rateDraft.calculation,
+  );
+  const isDynamicRate = [
+    "Total weight of items",
+    "Total price of items",
+    "Number of items",
+    "Sum Of Product Metafield",
+    "Sum Of Variant Metafield",
+    "Distance",
+  ].includes(rateDraft.calculation);
+  const isSumMetafieldRate = [
+    "Sum Of Product Metafield",
+    "Sum Of Variant Metafield",
+  ].includes(rateDraft.calculation);
+  const isCarrierRate = carrierNames.includes(rateDraft.calculation);
+  const currencyCode = currencyCodes[rateDraft.currency] || "USD";
+  const parameterSuffix =
+    rateDraft.calculation === "Distance"
+      ? "kms"
+      : rateDraft.calculation === "Total weight of items"
+        ? "lb"
+        : rateDraft.calculation === "Total price of items"
+          ? currencyCode
+          : "";
+  const priceCalculationSuffix =
+    rateDraft.priceCalculation === "Total weight of items"
+      ? "lb"
+      : rateDraft.priceCalculation === "Total price of items"
+        ? currencyCode
+        : "";
+  const incrementalParameterSuffix = rateDraft.rateType.includes("+")
+    ? priceCalculationSuffix
+    : parameterSuffix;
+  const canSaveRate = Boolean(
+    rateDraft.name.trim() &&
+    (isCarrierRate
+      ? true
+      : isDynamicRate
+        ? rateDraft.calculation === "Distance"
+          ? rateDraft.googleMapsApiKey.trim() &&
+            (rateDraft.originLocation !== "Custom Location" ||
+              rateDraft.originPostcode.trim())
+          : !isSumMetafieldRate || rateDraft.metafieldKey.trim()
+        : isMetafieldRate
+          ? rateDraft.metafieldKey.trim()
+          : rateDraft.price.trim()),
+  );
   const saveRate = () => {
-    if (!rateDraft.name.trim() || !rateDraft.price.trim()) return;
+    if (!canSaveRate) return;
     setZoneRates({ ...zoneRates, [activeZone]: rateDraft });
     closeRateModal();
   };
+  const renderPackagingFields = (parcel = false) => (
+    <div className={styles.packagingFields}>
+      <label>
+        {parcel ? "Parcel distribution" : "Packaging box distribution"}
+        <select
+          value={rateDraft.packagingDistribution}
+          onChange={(event) =>
+            updateRate("packagingDistribution", event.target.value)
+          }
+        >
+          <option>By items count</option>
+          <option>By items volume</option>
+        </select>
+      </label>
+      {rateDraft.packages.map((item, index) => (
+        <div className={styles.packageRow} key={index}>
+          {rateDraft.packagingDistribution === "By items count" && (
+            <RateValueField
+              label={`${parcel ? "Parcel" : "Box"} Max Limit`}
+              suffix="items"
+              value={item.limit}
+              onChange={(event) =>
+                updatePackage(index, "limit", event.target.value)
+              }
+            />
+          )}
+          {[
+            ["length", "Length", "mm"],
+            ["width", "Width", "mm"],
+            ["height", "Height", "mm"],
+            ["weight", "Weight (Optional)", "g"],
+          ].map(([key, label, suffix]) => (
+            <RateValueField
+              key={key}
+              label={`${parcel ? "Parcel" : "Box"} ${label}`}
+              suffix={suffix}
+              value={item[key]}
+              onChange={(event) =>
+                updatePackage(index, key, event.target.value)
+              }
+            />
+          ))}
+          <button
+            type="button"
+            className={styles.packageDeleteButton}
+            aria-label={`Delete package ${index + 1}`}
+            onClick={() => removePackage(index)}
+          >
+            🗑
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className={styles.packageAddButton}
+        onClick={addPackage}
+      >
+        ＋ Add
+      </button>
+      <p>Add packages from smallest to largest max limit value.</p>
+    </div>
+  );
 
   const updateCondition = (index, key, value) =>
     setConditions(
@@ -1015,23 +1261,758 @@ export default function NewShippingRateRule() {
                   </optgroup>
                 </select>
               </label>
-              <label>
-                <span className={styles.requiredLabel}>
-                  Price <b>*</b>
-                </span>
-                <span className={styles.priceInput}>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={rateDraft.price}
-                    onChange={(event) =>
-                      updateRate("price", event.target.value)
-                    }
-                  />
-                  <i>{currencyCodes[rateDraft.currency] || "USD"}</i>
-                </span>
-              </label>
+              {isCarrierRate ? (
+                <div className={styles.carrierRateFields}>
+                  {rateDraft.calculation === "Australia Post" && (
+                    <label>
+                      <span className={styles.requiredLabel}>
+                        API Key <b>*</b>
+                      </span>
+                      <input
+                        value={rateDraft.carrierApiKey}
+                        onChange={(event) =>
+                          updateRate("carrierApiKey", event.target.value)
+                        }
+                      />
+                    </label>
+                  )}
+
+                  {rateDraft.calculation === "USPS" && (
+                    <>
+                      <div className={styles.dynamicRateGrid}>
+                        <label>
+                          Client ID
+                          <input
+                            value={rateDraft.carrierApiKey}
+                            onChange={(event) =>
+                              updateRate("carrierApiKey", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          Client Secret
+                          <input
+                            type="password"
+                            value={rateDraft.carrierSecret}
+                            onChange={(event) =>
+                              updateRate("carrierSecret", event.target.value)
+                            }
+                          />
+                        </label>
+                      </div>
+                      <label>
+                        Rate schedule
+                        <select
+                          value={rateDraft.carrierSchedule}
+                          onChange={(event) =>
+                            updateRate("carrierSchedule", event.target.value)
+                          }
+                        >
+                          <option>Retail</option>
+                          <option>Commercial</option>
+                        </select>
+                      </label>
+                      <label>
+                        Select which rates to show
+                        <select
+                          value={rateDraft.ratesToShow}
+                          onChange={(event) =>
+                            updateRate("ratesToShow", event.target.value)
+                          }
+                        >
+                          <option>All rates</option>
+                          <option>lowest rate only</option>
+                          <option>Highest rate only</option>
+                        </select>
+                      </label>
+                      <div className={styles.carrierServices}>
+                        {[
+                          ["Domestic Services", uspsDomesticServices],
+                          ["International Services", uspsInternationalServices],
+                        ].map(([heading, services]) => (
+                          <div key={heading}>
+                            <strong>{heading}</strong>
+                            {services.map((service) => (
+                              <label key={service}>
+                                <input
+                                  type="checkbox"
+                                  checked={rateDraft.selectedServices.includes(
+                                    service,
+                                  )}
+                                  onChange={() => toggleCarrierService(service)}
+                                />
+                                {service}
+                              </label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {rateDraft.calculation === "Fedex" && (
+                    <>
+                      <div className={styles.dynamicRateGrid}>
+                        <label>
+                          API Key
+                          <input
+                            value={rateDraft.carrierApiKey}
+                            onChange={(event) =>
+                              updateRate("carrierApiKey", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          Secret Key
+                          <input
+                            type="password"
+                            value={rateDraft.carrierSecret}
+                            onChange={(event) =>
+                              updateRate("carrierSecret", event.target.value)
+                            }
+                          />
+                        </label>
+                      </div>
+                      <label>
+                        Account Number
+                        <input
+                          value={rateDraft.carrierAccount}
+                          onChange={(event) =>
+                            updateRate("carrierAccount", event.target.value)
+                          }
+                        />
+                      </label>
+                    </>
+                  )}
+
+                  {rateDraft.calculation === "Shiprocket" && (
+                    <div className={styles.dynamicRateGrid}>
+                      <label>
+                        Email ID
+                        <input
+                          type="email"
+                          value={rateDraft.carrierEmail}
+                          onChange={(event) =>
+                            updateRate("carrierEmail", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        Password
+                        <input
+                          type="password"
+                          value={rateDraft.carrierPassword}
+                          onChange={(event) =>
+                            updateRate("carrierPassword", event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {rateDraft.calculation === "Direct Freight Express" && (
+                    <>
+                      <div className={styles.dynamicRateGrid}>
+                        <label>
+                          API Key
+                          <input
+                            value={rateDraft.carrierApiKey}
+                            onChange={(event) =>
+                              updateRate("carrierApiKey", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label>
+                          Account Number
+                          <input
+                            value={rateDraft.carrierAccount}
+                            onChange={(event) =>
+                              updateRate("carrierAccount", event.target.value)
+                            }
+                          />
+                        </label>
+                      </div>
+                      <label>
+                        Rate Type
+                        <select
+                          value={rateDraft.carrierRateType}
+                          onChange={(event) =>
+                            updateRate("carrierRateType", event.target.value)
+                          }
+                        >
+                          <option>Item</option>
+                          <option>Pallet</option>
+                          <option>Skid</option>
+                          <option>Carton</option>
+                        </select>
+                      </label>
+                      <label className={styles.carrierCheckbox}>
+                        <input
+                          type="checkbox"
+                          checked={rateDraft.fuelLevy}
+                          onChange={(event) =>
+                            updateRate("fuelLevy", event.target.checked)
+                          }
+                        />
+                        <span>
+                          Fuel Levy Charges
+                          <small>
+                            Add fuel levy charges to the final delivery cost
+                          </small>
+                        </span>
+                      </label>
+                    </>
+                  )}
+
+                  {rateDraft.calculation === "Stallion Express" && (
+                    <>
+                      <label>
+                        API Key
+                        <input
+                          value={rateDraft.carrierApiKey}
+                          onChange={(event) =>
+                            updateRate("carrierApiKey", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        Package type
+                        <select
+                          value={rateDraft.packageType}
+                          onChange={(event) =>
+                            updateRate("packageType", event.target.value)
+                          }
+                        >
+                          {[
+                            "Parcel",
+                            "Legal Flat Rate Envelope",
+                            "Flat Rate Padded Envelope",
+                            "Small Flat Rate Box",
+                            "Medium Flat Rate Box 1",
+                            "Medium Flat Rate Box 2",
+                            "Large Flat Rate Box",
+                            "Regional Rate Box A1",
+                            "Regional Rate Box A2",
+                            "Regional Rate Box B1",
+                            "Regional Rate Box B2",
+                            "Letter",
+                            "Large Envelope Or Flat",
+                            "Thick Envelope",
+                          ].map((type) => (
+                            <option key={type}>{type}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {rateDraft.calculation === "ShipStation" && (
+                    <>
+                      <label>
+                        API Key
+                        <input
+                          value={rateDraft.carrierApiKey}
+                          onChange={(event) =>
+                            updateRate("carrierApiKey", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        API Secret
+                        <input
+                          type="password"
+                          value={rateDraft.carrierSecret}
+                          onChange={(event) =>
+                            updateRate("carrierSecret", event.target.value)
+                          }
+                        />
+                      </label>
+                      <button type="button" className={styles.outlineButton}>
+                        Fetch Carriers
+                      </button>
+                      <h4>Box Configuration</h4>
+                    </>
+                  )}
+
+                  {["Fedex", "Shiprocket"].includes(rateDraft.calculation) && (
+                    <label className={styles.carrierCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={rateDraft.hideDeliveryDates}
+                        onChange={(event) =>
+                          updateRate("hideDeliveryDates", event.target.checked)
+                        }
+                      />
+                      <span>
+                        Hide estimated delivery dates
+                        <small>
+                          Estimated delivery dates are calculated by{" "}
+                          {rateDraft.calculation}
+                        </small>
+                      </span>
+                    </label>
+                  )}
+
+                  {rateDraft.calculation === "Shiprocket" && (
+                    <label>
+                      Select which rates to show
+                      <select
+                        value={rateDraft.ratesToShow}
+                        onChange={(event) =>
+                          updateRate("ratesToShow", event.target.value)
+                        }
+                      >
+                        <option>All rates</option>
+                        <option>Lowest rate only</option>
+                        <option>Highest rate only</option>
+                      </select>
+                    </label>
+                  )}
+
+                  {renderPackagingFields(
+                    rateDraft.calculation === "Stallion Express",
+                  )}
+
+                  {rateDraft.calculation === "Stallion Express" && (
+                    <>
+                      <label>
+                        Signature required
+                        <select
+                          value={rateDraft.signatureRequired}
+                          onChange={(event) =>
+                            updateRate("signatureRequired", event.target.value)
+                          }
+                        >
+                          <option>No</option>
+                          <option>Yes</option>
+                        </select>
+                      </label>
+                      <label>
+                        Insured
+                        <select
+                          value={rateDraft.insured}
+                          onChange={(event) =>
+                            updateRate("insured", event.target.value)
+                          }
+                        >
+                          <option>No</option>
+                          <option>Yes</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {["USPS", "Fedex", "Stallion Express"].includes(
+                    rateDraft.calculation,
+                  ) && (
+                    <label>
+                      Discount (Optional)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={rateDraft.discount}
+                        onChange={(event) =>
+                          updateRate("discount", event.target.value)
+                        }
+                      />
+                      <small>Discount all rates by a specific percentage</small>
+                    </label>
+                  )}
+
+                  {rateDraft.calculation === "Fedex" && (
+                    <div className={styles.dynamicRateGrid}>
+                      <RateValueField
+                        label="Handling Fees"
+                        suffix="%"
+                        value={rateDraft.handlingPercent}
+                        onChange={(event) =>
+                          updateRate("handlingPercent", event.target.value)
+                        }
+                      />
+                      <RateValueField
+                        label="Handling Fees"
+                        suffix={currencyCode}
+                        value={rateDraft.handlingFixed}
+                        onChange={(event) =>
+                          updateRate("handlingFixed", event.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {rateDraft.calculation !== "ShipStation" && (
+                    <label>
+                      Default rate
+                      {["Fedex", "Stallion Express"].includes(
+                        rateDraft.calculation,
+                      )
+                        ? " (Optional)"
+                        : ""}
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={rateDraft.defaultRate}
+                        onChange={(event) =>
+                          updateRate("defaultRate", event.target.value)
+                        }
+                      />
+                      <small>
+                        This rate will be applied if there is no response / rate
+                        from the carrier during rate query.
+                      </small>
+                    </label>
+                  )}
+                </div>
+              ) : isDynamicRate ? (
+                <div className={styles.dynamicRateFields}>
+                  {rateDraft.calculation === "Distance" && (
+                    <div className={styles.distanceRateFields}>
+                      <label>
+                        <span className={styles.requiredLabel}>
+                          Google maps API key <b>*</b>
+                        </span>
+                        <input
+                          value={rateDraft.googleMapsApiKey}
+                          onChange={(event) =>
+                            updateRate("googleMapsApiKey", event.target.value)
+                          }
+                        />
+                      </label>
+                      <hr />
+                      <label>
+                        <span className={styles.requiredLabel}>
+                          Origin Location <b>*</b>
+                        </span>
+                        <select
+                          value={rateDraft.originLocation}
+                          onChange={(event) =>
+                            updateRate("originLocation", event.target.value)
+                          }
+                        >
+                          <option>Default Shopify Location</option>
+                          <option>Custom Location</option>
+                        </select>
+                      </label>
+                      {rateDraft.originLocation === "Custom Location" && (
+                        <div className={styles.dynamicRateGrid}>
+                          <label>
+                            <span className={styles.requiredLabel}>
+                              Country <b>*</b>
+                            </span>
+                            <select
+                              value={rateDraft.originCountry}
+                              onChange={(event) =>
+                                updateRate("originCountry", event.target.value)
+                              }
+                            >
+                              {countryOptions.map((country) => (
+                                <option key={country.code} value={country.code}>
+                                  {country.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span className={styles.requiredLabel}>
+                              Postcode <b>*</b>
+                            </span>
+                            <input
+                              value={rateDraft.originPostcode}
+                              onChange={(event) =>
+                                updateRate("originPostcode", event.target.value)
+                              }
+                            />
+                          </label>
+                        </div>
+                      )}
+                      <hr />
+                      <label>
+                        <span className={styles.requiredLabel}>
+                          Distance calculation method (in kilometers) <b>*</b>
+                        </span>
+                        <select
+                          value={rateDraft.distanceMethod}
+                          onChange={(event) =>
+                            updateRate("distanceMethod", event.target.value)
+                          }
+                        >
+                          <option>Driving</option>
+                          <option>Straight Line</option>
+                        </select>
+                      </label>
+                      <hr />
+                    </div>
+                  )}
+                  {isSumMetafieldRate && (
+                    <>
+                      <label>
+                        <span className={styles.requiredLabel}>
+                          {rateDraft.calculation === "Sum Of Variant Metafield"
+                            ? "Namespace and key"
+                            : "Key"}{" "}
+                          <b>*</b>
+                        </span>
+                        <input
+                          value={rateDraft.metafieldKey}
+                          placeholder={
+                            rateDraft.calculation === "Sum Of Variant Metafield"
+                              ? "Namespace.Key"
+                              : "Key"
+                          }
+                          onChange={(event) =>
+                            updateRate("metafieldKey", event.target.value)
+                          }
+                        />
+                      </label>
+                      <hr />
+                    </>
+                  )}
+                  <div className={styles.dynamicRateType}>
+                    <p>Rate Type</p>
+                    {[
+                      "Range",
+                      "Incremental",
+                      "Range + Incremental",
+                      "Range + Range",
+                    ].map((type) => (
+                      <label className={styles.radioLabel} key={type}>
+                        <input
+                          type="radio"
+                          name="rate-type"
+                          checked={rateDraft.rateType === type}
+                          onChange={() => updateRate("rateType", type)}
+                        />
+                        {type}
+                      </label>
+                    ))}
+                  </div>
+
+                  {rateDraft.rateType !== "Incremental" && (
+                    <div className={styles.dynamicRateGrid}>
+                      <RateValueField
+                        label="Range Start"
+                        required
+                        suffix={parameterSuffix}
+                        value={rateDraft.rangeStart}
+                        onChange={(event) =>
+                          updateRate("rangeStart", event.target.value)
+                        }
+                      />
+                      <RateValueField
+                        label="Range End"
+                        suffix={parameterSuffix}
+                        help="Leave empty for unlimited"
+                        value={rateDraft.rangeEnd}
+                        onChange={(event) =>
+                          updateRate("rangeEnd", event.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {["Range + Incremental", "Range + Range"].includes(
+                    rateDraft.rateType,
+                  ) && (
+                    <label className={styles.priceCalculationField}>
+                      Price calculation parameter
+                      <select
+                        value={rateDraft.priceCalculation}
+                        onChange={(event) =>
+                          updateRate("priceCalculation", event.target.value)
+                        }
+                      >
+                        <option>Number of items</option>
+                        <option>Total weight of items</option>
+                        <option>Total price of items</option>
+                      </select>
+                    </label>
+                  )}
+
+                  {["Incremental", "Range + Incremental"].includes(
+                    rateDraft.rateType,
+                  ) && (
+                    <div className={styles.dynamicRateGrid}>
+                      <RateValueField
+                        label="Base Price"
+                        required
+                        suffix={currencyCode}
+                        value={rateDraft.basePrice}
+                        onChange={(event) =>
+                          updateRate("basePrice", event.target.value)
+                        }
+                      />
+                      <RateValueField
+                        label="Incremental price"
+                        required
+                        suffix={currencyCode}
+                        value={rateDraft.incrementalPrice}
+                        onChange={(event) =>
+                          updateRate("incrementalPrice", event.target.value)
+                        }
+                      />
+                      <RateValueField
+                        label="Per each"
+                        required
+                        suffix={incrementalParameterSuffix}
+                        value={rateDraft.perEach}
+                        onChange={(event) =>
+                          updateRate("perEach", event.target.value)
+                        }
+                      />
+                      <RateValueField
+                        label="Start From"
+                        suffix={incrementalParameterSuffix}
+                        help="Leave empty for default value"
+                        value={rateDraft.startFrom}
+                        onChange={(event) =>
+                          updateRate("startFrom", event.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {rateDraft.rateType === "Range" && (
+                    <RateValueField
+                      label="Price"
+                      required
+                      suffix={currencyCode}
+                      value={rateDraft.price}
+                      onChange={(event) =>
+                        updateRate("price", event.target.value)
+                      }
+                    />
+                  )}
+
+                  {rateDraft.rateType === "Range + Range" && (
+                    <>
+                      <div className={styles.dynamicRateGrid}>
+                        <RateValueField
+                          label="Range Start"
+                          required
+                          suffix={priceCalculationSuffix}
+                          value={rateDraft.secondRangeStart}
+                          onChange={(event) =>
+                            updateRate("secondRangeStart", event.target.value)
+                          }
+                        />
+                        <RateValueField
+                          label="Range End"
+                          suffix={priceCalculationSuffix}
+                          value={rateDraft.secondRangeEnd}
+                          onChange={(event) =>
+                            updateRate("secondRangeEnd", event.target.value)
+                          }
+                        />
+                      </div>
+                      <RateValueField
+                        label="Price"
+                        required
+                        suffix={currencyCode}
+                        value={rateDraft.price}
+                        onChange={(event) =>
+                          updateRate("price", event.target.value)
+                        }
+                      />
+                    </>
+                  )}
+                </div>
+              ) : isMetafieldRate ? (
+                <div className={styles.metafieldRateFields}>
+                  <label>
+                    <span className={styles.requiredLabel}>
+                      {rateDraft.calculation === "Variant Metafield"
+                        ? "Namespace and key"
+                        : "Key"}{" "}
+                      <b>*</b>
+                    </span>
+                    <input
+                      value={rateDraft.metafieldKey}
+                      placeholder={
+                        rateDraft.calculation === "Variant Metafield"
+                          ? "Namespace.Key"
+                          : "Key"
+                      }
+                      onChange={(event) =>
+                        updateRate("metafieldKey", event.target.value)
+                      }
+                    />
+                  </label>
+                  <label className={styles.metafieldRateCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={rateDraft.increasePerItem}
+                      onChange={(event) =>
+                        updateRate("increasePerItem", event.target.checked)
+                      }
+                    />
+                    Increase rate per item
+                  </label>
+                  <hr />
+                  <label>
+                    Default rate
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={rateDraft.defaultRate}
+                      onChange={(event) =>
+                        updateRate("defaultRate", event.target.value)
+                      }
+                    />
+                  </label>
+                  <p>
+                    This rate will be applied if there is no value present in
+                    metafield for a
+                    {rateDraft.calculation === "Variant Metafield"
+                      ? "n SKU"
+                      : " product"}
+                    .
+                  </p>
+                </div>
+              ) : (
+                <label>
+                  <span className={styles.requiredLabel}>
+                    {rateDraft.calculation === "Percentage of total price"
+                      ? "Percentage"
+                      : "Price"}{" "}
+                    <b>*</b>
+                  </span>
+                  <span className={styles.priceInput}>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={rateDraft.price}
+                      onChange={(event) =>
+                        updateRate("price", event.target.value)
+                      }
+                    />
+                    <i>
+                      {rateDraft.calculation === "Percentage of total price"
+                        ? `%${currencyCodes[rateDraft.currency] || "USD"}`
+                        : currencyCodes[rateDraft.currency] || "USD"}
+                    </i>
+                  </span>
+                </label>
+              )}
+              {!isMetafieldRate &&
+                rateDraft.calculation === "Percentage of total price" && (
+                  <div className={styles.roundUpOption}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={rateDraft.roundUp}
+                        onChange={(event) =>
+                          updateRate("roundUp", event.target.checked)
+                        }
+                      />
+                      Round up to nearest integer
+                    </label>
+                    <p>For e.g. $2.67 will rounded up to $3</p>
+                  </div>
+                )}
               <hr />
               <h3>Advanced</h3>
               <label>
@@ -1050,7 +2031,7 @@ export default function NewShippingRateRule() {
               <button
                 type="button"
                 className={styles.darkButton}
-                disabled={!rateDraft.name.trim() || !rateDraft.price.trim()}
+                disabled={!canSaveRate}
                 onClick={saveRate}
               >
                 Done
