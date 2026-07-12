@@ -3,246 +3,20 @@ import { useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import styles from "../app.module.css";
 import AppPageHeader from "../components/AppPageHeader";
-
-const emptyCondition = () => ({
-  field: "Cart Subtotal",
-  operator: "Equals",
-  key: "",
-  value: "",
-  productMatch: "at-least-one",
-  matchValue: "",
-});
-
-const emptyParameter2Condition = () => ({
-  ...emptyCondition(),
-  field: "SKU",
-});
-
-const productTagMatchOptions = [
-  ["at-least-one", "At least one product meets the condition."],
-  ["all-products", "All products meet the condition."],
-  ["exact-quantity", "Cart has exactly specified quantity."],
-  ["more-quantity", "Cart has more than specified quantity."],
-  ["not-more-quantity", "Cart has not more than specified quantity."],
-  ["more-amount", "Cart has more than specified total price."],
-  ["not-more-amount", "Cart has not more than total price."],
-];
-
-const quantityMatches = new Set([
-  "exact-quantity",
-  "more-quantity",
-  "not-more-quantity",
-]);
-
-const amountMatches = new Set(["more-amount", "not-more-amount"]);
-
-const productFields = new Set([
-  "Product Tag",
-  "Product Title",
-  "Product Type",
-  "Product Weight",
-  "Product Vendor",
-  "Variant Title",
-  "Line Item Property",
-  "Product Price",
-  "Product Collection",
-  "SKU",
-  "Variant Metafield",
-  "Is subscription product",
-]);
-
-const textProductFields = new Set([
-  "Product Title",
-  "Product Type",
-  "Product Vendor",
-  "Variant Title",
-]);
-
-const numericProductFields = new Set(["Product Weight", "Product Price"]);
-
-const hasProductMatchOptions = (field) => productFields.has(field);
-
-const getConditionOperators = (field, parameterSet) => {
-  if (field === "Is subscription product") {
-    return ["True", "False"];
-  }
-
-  if (field === "Cart Attribute") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Is empty",
-      "Is not empty",
-    ];
-  }
-
-  if (
-    field === "SKU" ||
-    field === "Province / State Code"
-  ) {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
-  }
-
-  if (field === "Variant Metafield") {
-    return ["Equals", "Not equals", "Contains", "Does not contains"];
-  }
-
-  if (field === "Company Metafield") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Is empty",
-      "Is not empty",
-      "Includes in list",
-      "Not includes in list",
-    ];
-  }
-
-  if (field === "Company Location Metafield" && parameterSet === 3) {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Is empty",
-      "Is not empty",
-      "Includes in list",
-      "Not includes in list",
-    ];
-  }
-
-  if (
-    field === "Customer Metafield" ||
-    field === "Company Location Metafield"
-  ) {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Is empty",
-      "Is not empty",
-    ];
-  }
-
-  if (field === "Zipcode / Postcode") {
-    return ["Equals", "Not equals"];
-  }
-
-  if (field === "Country Code") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
-  }
-
-  if (field === "Address Line 1" || field === "Shipping Method Name") {
-    return ["Contains", "Does not contains"];
-  }
-
-  if (field === "Shipping Rate" || field === "Number Of Vendors") {
-    return [
-      "Equals",
-      "Not equals",
-      "Greater than",
-      "Less than",
-      "Greater than or equal",
-      "Less than or equal",
-    ];
-  }
-
-  if (field === "Customer Logged In") {
-    return ["True", "False"];
-  }
-
-  if (field === "Customer Company") {
-    return ["Contains", "Does not contains", "Is empty", "Is not empty"];
-  }
-
-  if (field === "Customer First Name") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
-  }
-
-  if (field === "Customer Tag") {
-    return ["Equals", "Not equals"];
-  }
-
-  if (textProductFields.has(field)) {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
-  }
-
-  if (field === "Line Item Property") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Is empty",
-      "Is not empty",
-    ];
-  }
-
-  if (numericProductFields.has(field)) {
-    return [
-      "Equals",
-      "Not equals",
-      "Greater than",
-      "Less than",
-      "Greater than or equal",
-      "Less than or equal",
-      "Is empty",
-      "Is not empty",
-    ];
-  }
-
-  if (field === "Product Tag" || field === "Product Collection") {
-    return ["Equals", "Not equals"];
-  }
-
-  return [
-    "Equals",
-    "Not equals",
-    "Greater than",
-    "Less than",
-    "Greater than or equal",
-    "Less than or equal",
-  ];
-};
-
-const DeleteIcon = () => (
-  <svg viewBox="0 0 20 20" aria-hidden="true">
-    <path d="M7.5 3.5h5M4.5 6h11M6 6l.7 10h6.6L14 6M8.5 8.5v5M11.5 8.5v5" />
-  </svg>
-);
+import CustomizationActionCard from "../components/CustomizationActionCard";
+import CustomizationSidebar from "../components/CustomizationSidebar";
+import DeleteIcon from "../components/DeleteIcon";
+import {
+  amountMatches,
+  emptyCustomizationCondition,
+  emptyParameter2Condition,
+  getConditionOperators,
+  getCustomizationActionLabel,
+  getDefaultConditionOperator,
+  hasProductMatchOptions,
+  productMatchOptions,
+  quantityMatches,
+} from "../constants/shippingCustomizations";
 
 export default function NewCustomization() {
   const navigate = useNavigate();
@@ -254,9 +28,9 @@ export default function NewCustomization() {
   const [parameterSet, setParameterSet] = useState(1);
   const [shipmentScope, setShipmentScope] = useState("all");
   const [conditionsBySet, setConditionsBySet] = useState({
-    1: [emptyCondition()],
+    1: [emptyCustomizationCondition()],
     2: [emptyParameter2Condition()],
-    3: [emptyCondition()],
+    3: [emptyCustomizationCondition()],
   });
   const [methods, setMethods] = useState([""]);
 
@@ -286,12 +60,7 @@ export default function NewCustomization() {
     navigate("/app/customizations");
   };
 
-  const actionLabel =
-    type === "Hide shipping rates"
-      ? "Hide the following shipping methods"
-      : type === "Rename shipping rates"
-        ? "Rename the following shipping methods"
-        : "Reorder the following shipping methods";
+  const actionLabel = getCustomizationActionLabel(type);
 
   return (
     <s-page inlineSize="large">
@@ -396,17 +165,7 @@ export default function NewCustomization() {
                             ? {
                                 ...item,
                                 field,
-                                operator:
-                                  field === "Customer Logged In"
-                                    ? "True"
-                                    : field === "Is subscription product"
-                                      ? "True"
-                                      : field === "Customer Company"
-                                        ? "Contains"
-                                        : field === "Address Line 1" ||
-                                            field === "Shipping Method Name"
-                                          ? "Contains"
-                                          : "Equals",
+                                operator: getDefaultConditionOperator(field),
                                 key: "",
                                 productMatch: "at-least-one",
                                 matchValue: "",
@@ -534,11 +293,9 @@ export default function NewCustomization() {
                         {getConditionOperators(
                           condition.field,
                           parameterSet,
-                        ).map(
-                          (operator) => (
-                            <option key={operator}>{operator}</option>
-                          ),
-                        )}
+                        ).map((operator) => (
+                          <option key={operator}>{operator}</option>
+                        ))}
                       </select>
                     )}
                   <button
@@ -657,7 +414,7 @@ export default function NewCustomization() {
                     )}
                     <div className={styles.quantityCheck}>
                       <p>Condition must match:</p>
-                      {productTagMatchOptions.map(([value, label]) => (
+                      {productMatchOptions.map(([value, label]) => (
                         <label className={styles.radioLabel} key={value}>
                           <input
                             type="radio"
@@ -709,91 +466,27 @@ export default function NewCustomization() {
             <button
               type="button"
               className={styles.outlineButton}
-              onClick={() => setConditions([...conditions, emptyCondition()])}
+              onClick={() =>
+                setConditions([...conditions, emptyCustomizationCondition()])
+              }
             >
               ＋ Add another condition
             </button>
           </section>
 
-          <section className={styles.ruleCard}>
-            <h2>Action</h2>
-            <p className={styles.customizationActionLabel}>
-              {actionLabel} <span aria-hidden="true">ⓘ</span>
-            </p>
-            {methods.map((method, index) => (
-              <div className={styles.customizationMethodRow} key={index}>
-                <input
-                  value={method}
-                  onChange={(event) =>
-                    setMethods(
-                      methods.map((item, itemIndex) =>
-                        itemIndex === index ? event.target.value : item,
-                      ),
-                    )
-                  }
-                  placeholder="e.g. Express Shipping"
-                />
-                <button
-                  type="button"
-                  aria-label={`Delete shipping method ${index + 1}`}
-                  onClick={() =>
-                    setMethods(
-                      methods.filter((_, itemIndex) => itemIndex !== index),
-                    )
-                  }
-                >
-                  <DeleteIcon />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className={styles.outlineButton}
-              onClick={() => setMethods([...methods, ""])}
-            >
-              ＋ Add another method
-            </button>
-          </section>
+          <CustomizationActionCard
+            actionLabel={actionLabel}
+            methods={methods}
+            setMethods={setMethods}
+          />
         </main>
 
-        <aside className={styles.ruleAside}>
-          <section className={styles.ruleCard}>
-            <h2>Status</h2>
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option>Active</option>
-              <option>Draft</option>
-            </select>
-          </section>
-          <section className={styles.ruleCard}>
-            <h2>Advanced</h2>
-            <p>Apply rule to:</p>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="shipment-scope"
-                checked={shipmentScope === "all"}
-                onChange={() => setShipmentScope("all")}
-              />
-              All shipments
-            </label>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="shipment-scope"
-                checked={shipmentScope === "first"}
-                onChange={() => setShipmentScope("first")}
-              />
-              Only the first shipment
-            </label>
-            <p className={styles.customizationAsideHelp}>
-              Select this if you sell subscriptions and want the rule to apply
-              only to the first shipment&apos;s shipping method.
-            </p>
-          </section>
-        </aside>
+        <CustomizationSidebar
+          status={status}
+          setStatus={setStatus}
+          shipmentScope={shipmentScope}
+          setShipmentScope={setShipmentScope}
+        />
       </div>
 
       <p className={styles.ruleFooter}>
