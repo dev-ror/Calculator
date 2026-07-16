@@ -1,7 +1,10 @@
+import '@shopify/polaris/build/esm/styles.css';
 import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
+import enTranslations from '@shopify/polaris/locales/en.json';
+import { AppProvider as PolarisProvider } from '@shopify/polaris';
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -15,15 +18,17 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
-        <s-link href="/app/rates">Shipping Rates</s-link>
-        <s-link href="/app/customizations">Shipping Customizations</s-link>
-        <s-link href="/app/settings">Settings</s-link>
-        <s-link href="/app/videos">Example Setup Videos</s-link>
-        <s-link href="/app/products">Products</s-link>
-        <s-link href="/app/billing">Billing</s-link>
-      </s-app-nav>
-      <Outlet />
+      <PolarisProvider i18n={enTranslations}>
+        <s-app-nav>
+          <s-link href="/app/rates">Shipping Rates</s-link>
+          <s-link href="/app/customizations">Shipping Customizations</s-link>
+          <s-link href="/app/settings">Settings</s-link>
+          <s-link href="/app/videos">Example Setup Videos</s-link>
+          <s-link href="/app/products">Products</s-link>
+          <s-link href="/app/billing">Billing</s-link>
+        </s-app-nav>
+        <Outlet />
+      </PolarisProvider>
     </AppProvider>
   );
 }
