@@ -1,9 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import styles from "../app.module.css";
-import AppPageHeader from "../components/AppPageHeader";
-import RateValueField from "../components/RateValueField";
+import {
+  Page,
+  Layout,
+  Card,
+  BlockStack,
+  InlineStack,
+  Box,
+  Text,
+  Divider,
+  FormLayout,
+  TextField,
+  Select,
+  RadioButton,
+  Checkbox,
+  Button,
+  Banner,
+  Modal,
+} from "@shopify/polaris";
+import { PlusIcon, DeleteIcon } from "@shopify/polaris-icons";
 import {
   blankCondition,
   blankRate,
@@ -15,10 +31,152 @@ import {
   effectiveConditionField,
   isCartProductCondition,
   isKeyedCondition,
-  shippingHelpFields,
   uspsDomesticServices,
   uspsInternationalServices,
 } from "../constants/shippingRates";
+
+// Grouped options for the "Condition field" Select (mirrors the original <optgroup> markup)
+const conditionFieldOptions = [
+  {
+    title: "Product",
+    options: [
+      "Product Title",
+      "Variant Title",
+      "Product Tag",
+      "SKU",
+      "Product Barcode",
+      "Product Vendor",
+      "Product Price",
+      "Product Compare-at Price",
+      "Product Quantity",
+      "Product Type",
+      "Product Weight",
+      "Product Metafield",
+      "Variant Metafield",
+      "Line item property",
+      "Product Length",
+      "Product Width",
+      "Product Height",
+      "Product Volume",
+      "Shopify Variant ID",
+      "Shopify Product ID",
+    ].map((label) => ({ label, value: label })),
+  },
+  {
+    title: "Cart",
+    options: [
+      "Cart Quantity",
+      "Cart Subtotal (total before discount)",
+      "Cart Total (total after discount)",
+      "Cart Weight",
+      "Cart Volume",
+      "Cart Contains",
+      "Cart Does Not Contain",
+      "Cart Locale",
+    ].map((label) => ({ label, value: label })),
+  },
+  {
+    title: "Shipping",
+    options: [
+      "Zipcode / Postcode",
+      "Province / State Code",
+      "Address Line 1",
+      "Country Code",
+      "Time of the Day",
+      "Day of the Week",
+      "Warehouse Zipcode / Postcode",
+    ].map((label) => ({ label, value: label })),
+  },
+  {
+    title: "Customer",
+    options: [
+      "Customer Tag",
+      "Customer First Name",
+      "Customer Last Name",
+    ].map((label) => ({ label, value: label })),
+  },
+];
+
+const cartProductFieldOptions = cartProductFields.map((label) => ({
+  label,
+  value: label,
+}));
+
+const currencyOptions = [
+  "Default Store Currency",
+  "United Arab Emirates Dirham",
+  "Australian Dollars",
+  "Canadian Dollars",
+  "Euro",
+  "United Kingdom Pounds",
+  "Indian Rupees",
+  "Japanese Yen",
+  "New Zealand Dollars",
+  "United States Dollars",
+  "South African Rand",
+  "Hong Kong Dollars",
+  "Swiss Francs",
+  "Polish Zlotych",
+].map((label) => ({ label, value: label }));
+
+const calculationOptionGroups = [
+  {
+    title: "Fixed Rates",
+    options: [
+      "Fixed rate",
+      "Percentage of total price",
+      "Product Metafield",
+      "Variant Metafield",
+    ].map((label) => ({ label, value: label })),
+  },
+  {
+    title: "Dynamic Rates",
+    options: [
+      "Total weight of items",
+      "Total price of items",
+      "Number of items",
+      "Sum Of Product Metafield",
+      "Sum Of Variant Metafield",
+      "Distance",
+    ].map((label) => ({ label, value: label })),
+  },
+  {
+    title: "Carrier Rates",
+    options: carrierNames.map((label) => ({ label, value: label })),
+  },
+];
+
+const stallionPackageTypeOptions = [
+  "Parcel",
+  "Legal Flat Rate Envelope",
+  "Flat Rate Padded Envelope",
+  "Small Flat Rate Box",
+  "Medium Flat Rate Box 1",
+  "Medium Flat Rate Box 2",
+  "Large Flat Rate Box",
+  "Regional Rate Box A1",
+  "Regional Rate Box A2",
+  "Regional Rate Box B1",
+  "Regional Rate Box B2",
+  "Letter",
+  "Large Envelope Or Flat",
+  "Thick Envelope",
+].map((label) => ({ label, value: label }));
+
+const cartContainsQuantityChecks = [
+  ["atLeastOne", "Cart contains at least one product"],
+  ["moreProducts", "Cart contains more than X products"],
+  ["lessProducts", "Cart contains less than X products"],
+  ["moreAmount", "Cart contains more than X amount"],
+  ["lessAmount", "Cart contains less than X amount"],
+];
+
+const rateTypeOptions = [
+  "Range",
+  "Incremental",
+  "Range + Incremental",
+  "Range + Range",
+];
 
 export default function NewShippingRateRule() {
   const navigate = useNavigate();
@@ -32,15 +190,6 @@ export default function NewShippingRateRule() {
   const [zoneRates, setZoneRates] = useState({});
   const [activeZone, setActiveZone] = useState(null);
   const [rateDraft, setRateDraft] = useState(blankRate());
-  const lastCondition = conditions[conditions.length - 1];
-  const lastConditionHasDynamicLine = lastCondition
-    ? Boolean(
-        conditionBehavior(effectiveConditionField(lastCondition)).help ||
-        lastCondition.field === "Cart Locale" ||
-        lastCondition.field === "Cart Contains" ||
-        shippingHelpFields.has(lastCondition.field),
-      )
-    : false;
 
   const openRateModal = (zone) => {
     setActiveZone(zone);
@@ -126,67 +275,69 @@ export default function NewShippingRateRule() {
     setZoneRates({ ...zoneRates, [activeZone]: rateDraft });
     closeRateModal();
   };
+
   const renderPackagingFields = (parcel = false) => (
-    <div className={styles.packagingFields}>
-      <label>
-        {parcel ? "Parcel distribution" : "Packaging box distribution"}
-        <select
-          value={rateDraft.packagingDistribution}
-          onChange={(event) =>
-            updateRate("packagingDistribution", event.target.value)
-          }
-        >
-          <option>By items count</option>
-          <option>By items volume</option>
-        </select>
-      </label>
+    <BlockStack gap="300">
+      <Select
+        label={parcel ? "Parcel distribution" : "Packaging box distribution"}
+        options={["By items count", "By items volume"]}
+        value={rateDraft.packagingDistribution}
+        onChange={(value) => updateRate("packagingDistribution", value)}
+      />
       {rateDraft.packages.map((item, index) => (
-        <div className={styles.packageRow} key={index}>
-          {rateDraft.packagingDistribution === "By items count" && (
-            <RateValueField
-              label={`${parcel ? "Parcel" : "Box"} Max Limit`}
-              suffix="items"
-              value={item.limit}
-              onChange={(event) =>
-                updatePackage(index, "limit", event.target.value)
-              }
-            />
-          )}
-          {[
-            ["length", "Length", "mm"],
-            ["width", "Width", "mm"],
-            ["height", "Height", "mm"],
-            ["weight", "Weight (Optional)", "g"],
-          ].map(([key, label, suffix]) => (
-            <RateValueField
-              key={key}
-              label={`${parcel ? "Parcel" : "Box"} ${label}`}
-              suffix={suffix}
-              value={item[key]}
-              onChange={(event) =>
-                updatePackage(index, key, event.target.value)
-              }
-            />
-          ))}
-          <button
-            type="button"
-            className={styles.packageDeleteButton}
-            aria-label={`Delete package ${index + 1}`}
-            onClick={() => removePackage(index)}
-          >
-            🗑
-          </button>
-        </div>
+        <Card key={index} background="bg-surface-secondary">
+          <BlockStack gap="300">
+            <InlineStack gap="300" wrap>
+              {rateDraft.packagingDistribution === "By items count" && (
+                <Box minWidth="140px">
+                  <TextField
+                    label={`${parcel ? "Parcel" : "Box"} Max Limit`}
+                    type="number"
+                    suffix="items"
+                    value={item.limit}
+                    onChange={(value) => updatePackage(index, "limit", value)}
+                    autoComplete="off"
+                  />
+                </Box>
+              )}
+              {[
+                ["length", "Length", "mm"],
+                ["width", "Width", "mm"],
+                ["height", "Height", "mm"],
+                ["weight", "Weight (Optional)", "g"],
+              ].map(([key, label, suffix]) => (
+                <Box minWidth="140px" key={key}>
+                  <TextField
+                    label={`${parcel ? "Parcel" : "Box"} ${label}`}
+                    type="number"
+                    suffix={suffix}
+                    value={item[key]}
+                    onChange={(value) => updatePackage(index, key, value)}
+                    autoComplete="off"
+                  />
+                </Box>
+              ))}
+              <Box paddingBlockStart="600">
+                <Button
+                  icon={DeleteIcon}
+                  tone="critical"
+                  accessibilityLabel={`Delete package ${index + 1}`}
+                  onClick={() => removePackage(index)}
+                />
+              </Box>
+            </InlineStack>
+          </BlockStack>
+        </Card>
       ))}
-      <button
-        type="button"
-        className={styles.packageAddButton}
-        onClick={addPackage}
-      >
-        ＋ Add
-      </button>
-      <p>Add packages from smallest to largest max limit value.</p>
-    </div>
+      <Box>
+        <Button icon={PlusIcon} onClick={addPackage}>
+          Add
+        </Button>
+      </Box>
+      <Text as="p" tone="subdued">
+        Add packages from smallest to largest max limit value.
+      </Text>
+    </BlockStack>
   );
 
   const updateCondition = (index, key, value) =>
@@ -243,964 +394,773 @@ export default function NewShippingRateRule() {
   };
 
   return (
-    <s-page inlineSize="large">
-      <div className={styles.ruleTitleRow}>
-        <AppPageHeader title="Add shipping rate rule" />
-        <div className={styles.ruleTopActions}>
-          <button
-            type="button"
-            onClick={() =>
-              setName(name ? `${name} copy` : "Cloned shipping rule")
-            }
-          >
-            Clone
-          </button>
-          <button
-            type="button"
-            className={styles.saveRuleButton}
-            disabled={!canSave}
-            onClick={save}
-          >
-            Save
-          </button>
-        </div>
-      </div>
+    <Page
+      title="Add shipping rate rule"
+      backAction={{ content: "Back", onAction: () => navigate(-1) }}
+      secondaryActions={[
+        {
+          content: "Clone",
+          onAction: () =>
+            setName(name ? `${name} copy` : "Cloned shipping rule"),
+        },
+      ]}
+      primaryAction={{ content: "Save", onAction: save, disabled: !canSave }}
+    >
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="400">
+            <Card>
+              <FormLayout>
+                <TextField
+                  label="Name"
+                  value={name}
+                  onChange={setName}
+                  placeholder="e.g. Heavy products rule"
+                  autoComplete="off"
+                />
+                <TextField
+                  label="Priority"
+                  type="number"
+                  min={1}
+                  value={priority}
+                  onChange={setPriority}
+                  placeholder="e.g. 1"
+                  autoComplete="off"
+                  helpText="Rules are evaluated in ascending order of priority. No two rules can share the same priority."
+                />
+              </FormLayout>
+            </Card>
 
-      <div className={styles.ruleLayout}>
-        <main className={styles.ruleMain}>
-          <section className={styles.ruleCard}>
-            <label>
-              Name
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Heavy products rule"
-              />
-            </label>
-            <label>
-              Priority
-              <input
-                type="number"
-                min="1"
-                value={priority}
-                onChange={(event) => setPriority(event.target.value)}
-                placeholder="e.g. 1"
-              />
-            </label>
-            <p className={styles.fieldHelp}>
-              Rules are evaluated in ascending order of priority. No two rules
-              can share the same priority.
-            </p>
-          </section>
-
-          <section className={styles.ruleCard}>
-            <h2>Conditions</h2>
-            <p>Rule must match:</p>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="match"
-                checked={match === "all"}
-                onChange={() => setMatch("all")}
-              />{" "}
-              All conditions
-            </label>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="match"
-                checked={match === "any"}
-                onChange={() => setMatch("any")}
-              />{" "}
-              Any condition
-            </label>
-
-            {conditions.map((condition, index) => (
-              <div className={styles.conditionBlock} key={index}>
-                <label>Condition {index + 1}</label>
-                <div
-                  className={`${styles.conditionRow} ${isKeyedCondition(condition) && !isCartProductCondition(condition.field) ? styles.metafieldConditionRow : ""} ${isCartProductCondition(condition.field) ? styles.cartContainsRow : ""} ${isCartProductCondition(condition.field) && isKeyedCondition(condition) ? styles.cartContainsKeyedRow : ""}`}
-                >
-                  <select
-                    value={condition.field}
-                    onChange={(event) =>
-                      changeConditionField(index, event.target.value)
-                    }
-                  >
-                    <optgroup label="Product">
-                      <option>Product Title</option>
-                      <option>Variant Title</option>
-                      <option>Product Tag</option>
-                      <option>SKU</option>
-                      <option>Product Barcode</option>
-                      <option>Product Vendor</option>
-                      <option>Product Price</option>
-                      <option>Product Compare-at Price</option>
-                      <option>Product Quantity</option>
-                      <option>Product Type</option>
-                      <option>Product Weight</option>
-                      <option>Product Metafield</option>
-                      <option>Variant Metafield</option>
-                      <option>Line item property</option>
-                      <option>Product Length</option>
-                      <option>Product Width</option>
-                      <option>Product Height</option>
-                      <option>Product Volume</option>
-                      <option>Shopify Variant ID</option>
-                      <option>Shopify Product ID</option>
-                    </optgroup>
-                    <optgroup label="Cart">
-                      <option>Cart Quantity</option>
-                      <option>Cart Subtotal (total before discount)</option>
-                      <option>Cart Total (total after discount)</option>
-                      <option>Cart Weight</option>
-                      <option>Cart Volume</option>
-                      <option>Cart Contains</option>
-                      <option>Cart Does Not Contain</option>
-                      <option>Cart Locale</option>
-                    </optgroup>
-                    <optgroup label="Shipping">
-                      <option>Zipcode / Postcode</option>
-                      <option>Province / State Code</option>
-                      <option>Address Line 1</option>
-                      <option>Country Code</option>
-                      <option>Time of the Day</option>
-                      <option>Day of the Week</option>
-                      <option>Warehouse Zipcode / Postcode</option>
-                    </optgroup>
-                    <optgroup label="Customer">
-                      <option>Customer Tag</option>
-                      <option>Customer First Name</option>
-                      <option>Customer Last Name</option>
-                    </optgroup>
-                  </select>
-                  {isCartProductCondition(condition.field) && (
-                    <select
-                      value={condition.subfield}
-                      aria-label="Product field"
-                      onChange={(event) =>
-                        changeCartProductField(index, event.target.value)
-                      }
-                    >
-                      <optgroup label="Product">
-                        {cartProductFields.map((field) => (
-                          <option key={field}>{field}</option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  )}
-                  {isKeyedCondition(condition) && (
-                    <input
-                      value={condition.key}
-                      placeholder={
-                        effectiveConditionField(condition) ===
-                        "Variant Metafield"
-                          ? "Namespace.Key"
-                          : "Key"
-                      }
-                      aria-label={`${effectiveConditionField(condition)} key`}
-                      onChange={(event) =>
-                        updateCondition(index, "key", event.target.value)
-                      }
-                    />
-                  )}
-                  <select
-                    value={condition.operator}
-                    onChange={(event) =>
-                      updateCondition(index, "operator", event.target.value)
-                    }
-                  >
-                    {conditionBehavior(
-                      effectiveConditionField(condition),
-                    ).operators.map((operator) => (
-                      <option key={operator}>{operator}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    aria-label={`Delete condition ${index + 1}`}
-                    onClick={() =>
-                      setConditions(
-                        conditions.filter(
-                          (_, itemIndex) => itemIndex !== index,
-                        ),
-                      )
-                    }
-                  >
-                    <svg viewBox="0 0 20 20" aria-hidden="true">
-                      <path d="M7.5 3.5h5M4.5 6h11M6 6l.7 10h6.6L14 6M8.5 8.5v5M11.5 8.5v5" />
-                    </svg>
-                  </button>
-                </div>
-                <span className={styles.conditionValueInput}>
-                  <input
-                    className={
-                      effectiveConditionField(condition) === "Time of the Day"
-                        ? styles.timeConditionInput
-                        : undefined
-                    }
-                    type={
-                      conditionBehavior(effectiveConditionField(condition)).type
-                    }
-                    onClick={(event) => {
-                      if (
-                        effectiveConditionField(condition) ===
-                          "Time of the Day" &&
-                        typeof event.currentTarget.showPicker === "function"
-                      ) {
-                        event.currentTarget.showPicker();
-                      }
-                    }}
-                    min={
-                      conditionBehavior(effectiveConditionField(condition))
-                        .currency
-                        ? "0"
-                        : undefined
-                    }
-                    step={
-                      conditionBehavior(effectiveConditionField(condition))
-                        .currency
-                        ? "1"
-                        : undefined
-                    }
-                    value={condition.value}
-                    onChange={(event) =>
-                      updateCondition(index, "value", event.target.value)
-                    }
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Conditions
+                </Text>
+                <BlockStack gap="200">
+                  <Text as="p">Rule must match:</Text>
+                  <RadioButton
+                    label="All conditions"
+                    name="match"
+                    checked={match === "all"}
+                    onChange={() => setMatch("all")}
                   />
-                  {(conditionBehavior(effectiveConditionField(condition))
-                    .currency ||
-                    conditionBehavior(effectiveConditionField(condition))
-                      .unit) && (
-                    <>
-                      <i
-                        className={
-                          conditionBehavior(effectiveConditionField(condition))
-                            .unit
-                            ? styles.unitSuffix
-                            : undefined
-                        }
-                      >
-                        {conditionBehavior(effectiveConditionField(condition))
-                          .unit || "USD"}
-                      </i>
-                      {conditionBehavior(effectiveConditionField(condition))
-                        .currency && (
-                        <span className={styles.currencySpinner}>
-                          <button
-                            type="button"
-                            aria-label="Increase price"
-                            onClick={() => stepConditionPrice(index, 1)}
-                          >
-                            ▲
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Decrease price"
-                            onClick={() => stepConditionPrice(index, -1)}
-                          >
-                            ▼
-                          </button>
-                        </span>
-                      )}
-                    </>
-                  )}
-                  {["Time of the Day", "Day of the Week"].includes(
+                  <RadioButton
+                    label="Any condition"
+                    name="match"
+                    checked={match === "any"}
+                    onChange={() => setMatch("any")}
+                  />
+                </BlockStack>
+
+                {conditions.map((condition, index) => {
+                  const behavior = conditionBehavior(
                     effectiveConditionField(condition),
-                  ) && (
-                    <i className={styles.timezoneSuffix}>America/New_York</i>
-                  )}
-                </span>
-                {conditionBehavior(effectiveConditionField(condition)).help && (
-                  <p className={`${styles.fieldHelp} ${styles.conditionHelp}`}>
-                    {conditionBehavior(effectiveConditionField(condition)).help}
-                  </p>
-                )}
-                {condition.field === "Cart Locale" && (
-                  <div className={styles.localeHelp}>
-                    <p className={styles.fieldHelp}>
-                      Enter the locale code used by Shopify. You can find them{" "}
-                      <a
-                        href="https://shopify.dev/docs/api/liquid/objects/localization"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        here
-                      </a>
-                      .
-                    </p>
-                    <p className={styles.fieldHelp}>
-                      You can also enter multiple values separated by semi-colon
-                      (;).
-                    </p>
-                  </div>
-                )}
-                {[
-                  "Zipcode / Postcode",
-                  "Warehouse Zipcode / Postcode",
-                ].includes(condition.field) && (
-                  <div className={styles.shippingFieldHelp}>
-                    <p className={styles.fieldHelp}>
-                      You can use asterisk (*) for wildcard (For e.g. AB14*).
-                    </p>
-                    <p className={styles.fieldHelp}>
-                      You can also use hyphen to enter range of postcodes (For
-                      e.g. 90209-90231).
-                    </p>
-                    <p className={styles.fieldHelp}>
-                      You can also enter multiple values separated by comma (,).
-                    </p>
-                  </div>
-                )}
-                {condition.field === "Province / State Code" && (
-                  <div className={styles.shippingFieldHelp}>
-                    <p className={styles.fieldHelp}>
-                      Enter two-letter province codes used by Shopify. You can
-                      find them{" "}
-                      <a
-                        href="https://en.wikipedia.org/wiki/ISO_3166-2"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        here
-                      </a>
-                      .
-                    </p>
-                    <p className={styles.fieldHelp}>
-                      You can also enter multiple values separated by comma (,).
-                    </p>
-                  </div>
-                )}
-                {condition.field === "Country Code" && (
-                  <div className={styles.shippingFieldHelp}>
-                    <p className={styles.fieldHelp}>
-                      Enter two-letter country codes used by Shopify. You can
-                      find them{" "}
-                      <a
-                        href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        here
-                      </a>
-                      .
-                    </p>
-                    <p className={styles.fieldHelp}>
-                      You can also enter multiple values separated by semi-colon
-                      (;).
-                    </p>
-                  </div>
-                )}
-                {condition.field === "Day of the Week" && (
-                  <div className={styles.shippingFieldHelp}>
-                    <p className={styles.fieldHelp}>
-                      Enter full names of the day like Monday, Tuesday, etc.
-                    </p>
-                    <p className={styles.fieldHelp}>
-                      You can also enter multiple values separated by comma (,).
-                    </p>
-                  </div>
-                )}
-                {condition.field === "Cart Contains" && (
-                  <div className={styles.quantityCheck}>
-                    <p>Quantity / amount check:</p>
-                    {[
-                      ["atLeastOne", "Cart contains at least one product"],
-                      ["moreProducts", "Cart contains more than X products"],
-                      ["lessProducts", "Cart contains less than X products"],
-                      ["moreAmount", "Cart contains more than X amount"],
-                      ["lessAmount", "Cart contains less than X amount"],
-                    ].map(([value, label]) => (
-                      <label className={styles.radioLabel} key={value}>
-                        <input
-                          type="radio"
-                          name={`quantity-check-${index}`}
-                          checked={condition.quantityCheck === value}
-                          onChange={() =>
-                            setConditions(
-                              conditions.map((item, itemIndex) =>
-                                itemIndex === index
-                                  ? {
-                                      ...item,
-                                      quantityCheck: value,
-                                      quantityValue: "",
-                                    }
-                                  : item,
-                              ),
-                            )
-                          }
-                        />
-                        {label}
-                      </label>
-                    ))}
-                    {condition.quantityCheck !== "atLeastOne" && (
-                      <label className={styles.quantityValueField}>
-                        {condition.quantityCheck.includes("Amount")
-                          ? "Amount"
-                          : "Quantity"}
-                        <span className={styles.conditionValueInput}>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            placeholder={
-                              condition.quantityCheck.includes("Amount")
-                                ? "Enter amount"
-                                : "Enter quantity"
-                            }
-                            value={condition.quantityValue}
-                            onChange={(event) =>
-                              updateCondition(
-                                index,
-                                "quantityValue",
-                                event.target.value,
+                  );
+                  return (
+                    <Card key={index} background="bg-surface-secondary">
+                      <BlockStack gap="300">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Text as="h3" variant="headingSm">
+                            Condition {index + 1}
+                          </Text>
+                          <Button
+                            icon={DeleteIcon}
+                            tone="critical"
+                            variant="plain"
+                            accessibilityLabel={`Delete condition ${index + 1}`}
+                            onClick={() =>
+                              setConditions(
+                                conditions.filter(
+                                  (_, itemIndex) => itemIndex !== index,
+                                ),
                               )
                             }
                           />
-                          {condition.quantityCheck.includes("Amount") && (
-                            <i className={styles.unitSuffix}>USD</i>
+                        </InlineStack>
+
+                        <InlineStack gap="300" wrap blockAlign="start">
+                          <Box minWidth="220px">
+                            <Select
+                              label="Field"
+                              labelHidden
+                              options={conditionFieldOptions}
+                              value={condition.field}
+                              onChange={(value) =>
+                                changeConditionField(index, value)
+                              }
+                            />
+                          </Box>
+                          {isCartProductCondition(condition.field) && (
+                            <Box minWidth="200px">
+                              <Select
+                                label="Product field"
+                                labelHidden
+                                options={cartProductFieldOptions}
+                                value={condition.subfield}
+                                onChange={(value) =>
+                                  changeCartProductField(index, value)
+                                }
+                              />
+                            </Box>
                           )}
-                        </span>
-                      </label>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            <button
-              className={`${styles.outlineButton} ${lastConditionHasDynamicLine ? styles.outlineButtonNoTopMargin : ""}`}
-              type="button"
-              onClick={() => setConditions([...conditions, blankCondition()])}
-            >
-              ＋ Add another condition
-            </button>
-          </section>
+                          {isKeyedCondition(condition) && (
+                            <Box minWidth="180px">
+                              <TextField
+                                label={`${effectiveConditionField(condition)} key`}
+                                labelHidden
+                                value={condition.key}
+                                placeholder={
+                                  effectiveConditionField(condition) ===
+                                  "Variant Metafield"
+                                    ? "Namespace.Key"
+                                    : "Key"
+                                }
+                                onChange={(value) =>
+                                  updateCondition(index, "key", value)
+                                }
+                                autoComplete="off"
+                              />
+                            </Box>
+                          )}
+                          <Box minWidth="200px">
+                            <Select
+                              label="Operator"
+                              labelHidden
+                              options={behavior.operators}
+                              value={condition.operator}
+                              onChange={(value) =>
+                                updateCondition(index, "operator", value)
+                              }
+                            />
+                          </Box>
+                        </InlineStack>
 
-          <section className={`${styles.ruleCard} ${styles.zonesCard}`}>
-            <h2>Shipping zones</h2>
-            {["Domestic", "International"].map((zone) => (
-              <div className={styles.zone} key={zone}>
-                <div>
-                  <strong>{zone}</strong>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      zoneRates[zone]
-                        ? setZoneRates({ ...zoneRates, [zone]: undefined })
-                        : openRateModal(zone)
-                    }
+                        <InlineStack gap="200" blockAlign="end" wrap={false}>
+                          <Box width="100%">
+                            <TextField
+                              label="Value"
+                              labelHidden
+                              type={
+                                behavior.type === "time"
+                                  ? "time"
+                                  : behavior.type === "number"
+                                    ? "number"
+                                    : "text"
+                              }
+                              min={behavior.currency ? 0 : undefined}
+                              step={behavior.currency ? 1 : undefined}
+                              value={condition.value}
+                              onChange={(value) =>
+                                updateCondition(index, "value", value)
+                              }
+                              suffix={
+                                behavior.currency || behavior.unit
+                                  ? behavior.unit || "USD"
+                                  : ["Time of the Day", "Day of the Week"].includes(
+                                        effectiveConditionField(condition),
+                                      )
+                                    ? "America/New_York"
+                                    : undefined
+                              }
+                              autoComplete="off"
+                            />
+                          </Box>
+                        </InlineStack>
+
+                        {behavior.help && (
+                          <Text as="p" tone="subdued">
+                            {behavior.help}
+                          </Text>
+                        )}
+
+                        {condition.field === "Cart Locale" && (
+                          <BlockStack gap="100">
+                            <Text as="p" tone="subdued">
+                              Enter the locale code used by Shopify. You can
+                              find them{" "}
+                              <a
+                                href="https://shopify.dev/docs/api/liquid/objects/localization"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                here
+                              </a>
+                              .
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              You can also enter multiple values separated by
+                              semi-colon (;).
+                            </Text>
+                          </BlockStack>
+                        )}
+
+                        {[
+                          "Zipcode / Postcode",
+                          "Warehouse Zipcode / Postcode",
+                        ].includes(condition.field) && (
+                          <BlockStack gap="100">
+                            <Text as="p" tone="subdued">
+                              You can use asterisk (*) for wildcard (For e.g.
+                              AB14*).
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              You can also use hyphen to enter range of
+                              postcodes (For e.g. 90209-90231).
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              You can also enter multiple values separated by
+                              comma (,).
+                            </Text>
+                          </BlockStack>
+                        )}
+
+                        {condition.field === "Province / State Code" && (
+                          <BlockStack gap="100">
+                            <Text as="p" tone="subdued">
+                              Enter two-letter province codes used by
+                              Shopify. You can find them{" "}
+                              <a
+                                href="https://en.wikipedia.org/wiki/ISO_3166-2"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                here
+                              </a>
+                              .
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              You can also enter multiple values separated by
+                              comma (,).
+                            </Text>
+                          </BlockStack>
+                        )}
+
+                        {condition.field === "Country Code" && (
+                          <BlockStack gap="100">
+                            <Text as="p" tone="subdued">
+                              Enter two-letter country codes used by Shopify.
+                              You can find them{" "}
+                              <a
+                                href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                here
+                              </a>
+                              .
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              You can also enter multiple values separated by
+                              semi-colon (;).
+                            </Text>
+                          </BlockStack>
+                        )}
+
+                        {condition.field === "Day of the Week" && (
+                          <BlockStack gap="100">
+                            <Text as="p" tone="subdued">
+                              Enter full names of the day like Monday,
+                              Tuesday, etc.
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              You can also enter multiple values separated by
+                              comma (,).
+                            </Text>
+                          </BlockStack>
+                        )}
+
+                        {condition.field === "Cart Contains" && (
+                          <BlockStack gap="200">
+                            <Text as="p">Quantity / amount check:</Text>
+                            {cartContainsQuantityChecks.map(([value, label]) => (
+                              <RadioButton
+                                key={value}
+                                label={label}
+                                name={`quantity-check-${index}`}
+                                checked={condition.quantityCheck === value}
+                                onChange={() =>
+                                  setConditions(
+                                    conditions.map((item, itemIndex) =>
+                                      itemIndex === index
+                                        ? {
+                                            ...item,
+                                            quantityCheck: value,
+                                            quantityValue: "",
+                                          }
+                                        : item,
+                                    ),
+                                  )
+                                }
+                              />
+                            ))}
+                            {condition.quantityCheck !== "atLeastOne" && (
+                              <TextField
+                                label={
+                                  condition.quantityCheck.includes("Amount")
+                                    ? "Amount"
+                                    : "Quantity"
+                                }
+                                type="number"
+                                min={0}
+                                step={1}
+                                placeholder={
+                                  condition.quantityCheck.includes("Amount")
+                                    ? "Enter amount"
+                                    : "Enter quantity"
+                                }
+                                suffix={
+                                  condition.quantityCheck.includes("Amount")
+                                    ? "USD"
+                                    : undefined
+                                }
+                                value={condition.quantityValue}
+                                onChange={(value) =>
+                                  updateCondition(
+                                    index,
+                                    "quantityValue",
+                                    value,
+                                  )
+                                }
+                                autoComplete="off"
+                              />
+                            )}
+                          </BlockStack>
+                        )}
+                      </BlockStack>
+                    </Card>
+                  );
+                })}
+
+                <Box>
+                  <Button
+                    icon={PlusIcon}
+                    onClick={() => setConditions([...conditions, blankCondition()])}
                   >
-                    {zoneRates[zone] === undefined ? "Add rate" : "Remove rate"}
-                  </button>
-                </div>
-                {zoneRates[zone] === undefined ? (
-                  <p className={styles.zoneWarning}>
-                    ⚠ &nbsp; No rates. Customers in this zone won&apos;t see
-                    shipping rates from ShipMagic app.
-                  </p>
-                ) : (
-                  <div className={styles.savedRate}>
-                    <span>
-                      <strong>{zoneRates[zone].name}</strong>
-                      <small>{zoneRates[zone].calculation}</small>
-                    </span>
-                    <button type="button" onClick={() => openRateModal(zone)}>
-                      ${zoneRates[zone].price}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </section>
-        </main>
+                    Add another condition
+                  </Button>
+                </Box>
+              </BlockStack>
+            </Card>
 
-        <aside className={styles.ruleAside}>
-          <section className={styles.ruleCard}>
-            <h2>Status</h2>
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option>Active</option>
-              <option>Draft</option>
-            </select>
-          </section>
-          <section className={styles.ruleCard}>
-            <h2>Exclusivity</h2>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="exclusivity"
-                checked={exclusivity === "inclusive"}
-                onChange={() => setExclusivity("inclusive")}
-              />{" "}
-              Inclusive
-            </label>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="exclusivity"
-                checked={exclusivity === "exclusive"}
-                onChange={() => setExclusivity("exclusive")}
-              />{" "}
-              Exclusive
-            </label>
-            <p className={styles.fieldHelp}>
-              If an &apos;Exclusive&apos; rule is satisfied, all lower-priority
-              rules are skipped from evaluation.
-            </p>
-          </section>
-        </aside>
-      </div>
-      <p className={styles.ruleFooter}>
-        Reach out to live chat support for set up assistance or feature
-        requests.
-      </p>
-      {activeZone && (
-        <div
-          className={styles.modalOverlay}
-          role="presentation"
-          onMouseDown={(event) =>
-            event.target === event.currentTarget && closeRateModal()
-          }
-        >
-          <section
-            className={styles.rateModal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-rate-title"
-          >
-            <header>
-              <h2 id="add-rate-title">Add rate</h2>
-              <button
-                type="button"
-                onClick={closeRateModal}
-                aria-label="Close add rate modal"
-              >
-                ×
-              </button>
-            </header>
-            <div className={styles.rateModalBody}>
-              <h3>Details</h3>
-              <label>
-                <span className={styles.requiredLabel}>
-                  Rate name <b>*</b>
-                </span>
-                <input
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Shipping zones
+                </Text>
+                {["Domestic", "International"].map((zone) => (
+                  <Card key={zone} background="bg-surface-secondary">
+                    <BlockStack gap="300">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="h3" variant="headingSm">
+                          {zone}
+                        </Text>
+                        <Button
+                          variant="plain"
+                          onClick={() =>
+                            zoneRates[zone]
+                              ? setZoneRates({ ...zoneRates, [zone]: undefined })
+                              : openRateModal(zone)
+                          }
+                        >
+                          {zoneRates[zone] === undefined
+                            ? "Add rate"
+                            : "Remove rate"}
+                        </Button>
+                      </InlineStack>
+                      {zoneRates[zone] === undefined ? (
+                        <Banner tone="warning">
+                          No rates. Customers in this zone won&apos;t see
+                          shipping rates from ShipMagic app.
+                        </Banner>
+                      ) : (
+                        <InlineStack align="space-between" blockAlign="center">
+                          <BlockStack gap="0">
+                            <Text as="p" fontWeight="semibold">
+                              {zoneRates[zone].name}
+                            </Text>
+                            <Text as="p" tone="subdued">
+                              {zoneRates[zone].calculation}
+                            </Text>
+                          </BlockStack>
+                          <Button onClick={() => openRateModal(zone)}>
+                            ${zoneRates[zone].price}
+                          </Button>
+                        </InlineStack>
+                      )}
+                    </BlockStack>
+                  </Card>
+                ))}
+              </BlockStack>
+            </Card>
+          </BlockStack>
+        </Layout.Section>
+
+        <Layout.Section variant="oneThird">
+          <BlockStack gap="400">
+            <Card>
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingMd">
+                  Status
+                </Text>
+                <Select
+                  label="Status"
+                  labelHidden
+                  options={["Active", "Draft"]}
+                  value={status}
+                  onChange={setStatus}
+                />
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingMd">
+                  Exclusivity
+                </Text>
+                <RadioButton
+                  label="Inclusive"
+                  name="exclusivity"
+                  checked={exclusivity === "inclusive"}
+                  onChange={() => setExclusivity("inclusive")}
+                />
+                <RadioButton
+                  label="Exclusive"
+                  name="exclusivity"
+                  checked={exclusivity === "exclusive"}
+                  onChange={() => setExclusivity("exclusive")}
+                />
+                <Text as="p" tone="subdued">
+                  If an &apos;Exclusive&apos; rule is satisfied, all
+                  lower-priority rules are skipped from evaluation.
+                </Text>
+              </BlockStack>
+            </Card>
+          </BlockStack>
+        </Layout.Section>
+      </Layout>
+
+      <Box paddingBlockStart="500" paddingBlockEnd="500">
+        <Text as="p" alignment="center" tone="subdued">
+          Reach out to live chat support for set up assistance or feature
+          requests.
+        </Text>
+      </Box>
+
+      <Modal
+        open={Boolean(activeZone)}
+        onClose={closeRateModal}
+        title="Add rate"
+        primaryAction={{
+          content: "Done",
+          onAction: saveRate,
+          disabled: !canSaveRate,
+        }}
+        secondaryActions={[{ content: "Cancel", onAction: closeRateModal }]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                Details
+              </Text>
+              <FormLayout>
+                <TextField
+                  label="Rate name"
+                  requiredIndicator
                   value={rateDraft.name}
-                  onChange={(event) => updateRate("name", event.target.value)}
+                  onChange={(value) => updateRate("name", value)}
+                  helpText="This is the shipping rate name customer will see at checkout."
+                  autoComplete="off"
                 />
-              </label>
-              <p>
-                This is the shipping rate name customer will see at checkout.
-              </p>
-              <label>
-                Description
-                <input
+                <TextField
+                  label="Description"
                   value={rateDraft.description}
-                  onChange={(event) =>
-                    updateRate("description", event.target.value)
-                  }
+                  onChange={(value) => updateRate("description", value)}
+                  helpText={`Tip: Use {{today}} to display today's date and {{today+3}} to add 3 days dynamically.`}
+                  autoComplete="off"
                 />
-              </label>
-              <p>
-                Tip: Use {"{{today}}"} to display today&apos;s date and{" "}
-                {"{{today+3}}"} to add 3 days dynamically.
-              </p>
-              <div className={styles.modalField}>
-                <span>Delivery time</span>
-                <div className={styles.deliveryInputs}>
-                  <span>
-                    <input
+                <InlineStack gap="400" wrap={false} align="start">
+                  <Box width="100%">
+                    <TextField
+                      label="Delivery time"
                       type="number"
-                      min="0"
+                      min={0}
+                      suffix="days"
                       value={rateDraft.minimumDays}
-                      onChange={(event) =>
-                        updateRate("minimumDays", event.target.value)
-                      }
+                      onChange={(value) => updateRate("minimumDays", value)}
+                      autoComplete="off"
                     />
-                    <i>days</i>
-                  </span>
-                  <span>
-                    <input
+                  </Box>
+                  <Box width="100%" paddingBlockStart="600">
+                    <TextField
+                      label="Delivery time max"
+                      labelHidden
                       type="number"
-                      min="0"
+                      min={0}
+                      suffix="days"
                       value={rateDraft.maximumDays}
-                      onChange={(event) =>
-                        updateRate("maximumDays", event.target.value)
-                      }
+                      onChange={(value) => updateRate("maximumDays", value)}
+                      autoComplete="off"
                     />
-                    <i>days</i>
-                  </span>
-                </div>
-              </div>
-              <label>
-                Currency
-                <select
+                  </Box>
+                </InlineStack>
+                <Select
+                  label="Currency"
+                  options={currencyOptions}
                   value={rateDraft.currency}
-                  onChange={(event) =>
-                    updateRate("currency", event.target.value)
-                  }
-                >
-                  <option>Default Store Currency</option>
-                  <option>United Arab Emirates Dirham</option>
-                  <option>Australian Dollars</option>
-                  <option>Canadian Dollars</option>
-                  <option>Euro</option>
-                  <option>United Kingdom Pounds</option>
-                  <option>Indian Rupees</option>
-                  <option>Japanese Yen</option>
-                  <option>New Zealand Dollars</option>
-                  <option>United States Dollars</option>
-                  <option>South African Rand</option>
-                  <option>Hong Kong Dollars</option>
-                  <option>Swiss Francs</option>
-                  <option>Polish Zlotych</option>
-                </select>
-              </label>
-              <hr />
-              <h3>Rate</h3>
-              <label>
-                <span className={styles.requiredLabel}>
-                  Calculation parameter <b>*</b>
-                </span>
-                <select
-                  value={rateDraft.calculation}
-                  onChange={(event) =>
-                    updateRate("calculation", event.target.value)
-                  }
-                >
-                  <optgroup label="Fixed Rates">
-                    <option>Fixed rate</option>
-                    <option>Percentage of total price</option>
-                    <option>Product Metafield</option>
-                    <option>Variant Metafield</option>
-                  </optgroup>
-                  <optgroup label="Dynamic Rates">
-                    <option>Total weight of items</option>
-                    <option>Total price of items</option>
-                    <option>Number of items</option>
-                    <option>Sum Of Product Metafield</option>
-                    <option>Sum Of Variant Metafield</option>
-                    <option>Distance</option>
-                  </optgroup>
-                  <optgroup label="Carrier Rates">
-                    <option>Australia Post</option>
-                    <option>USPS</option>
-                    <option>Fedex</option>
-                    <option>Shiprocket</option>
-                    <option>Direct Freight Express</option>
-                    <option>Stallion Express</option>
-                    <option>ShipStation</option>
-                  </optgroup>
-                </select>
-              </label>
+                  onChange={(value) => updateRate("currency", value)}
+                />
+              </FormLayout>
+            </BlockStack>
+
+            <Divider />
+
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                Rate
+              </Text>
+              <Select
+                label="Calculation parameter"
+                requiredIndicator
+                options={calculationOptionGroups}
+                value={rateDraft.calculation}
+                onChange={(value) => updateRate("calculation", value)}
+              />
+
               {isCarrierRate ? (
-                <div className={styles.carrierRateFields}>
+                <BlockStack gap="300">
                   {rateDraft.calculation === "Australia Post" && (
-                    <label>
-                      <span className={styles.requiredLabel}>
-                        API Key <b>*</b>
-                      </span>
-                      <input
-                        value={rateDraft.carrierApiKey}
-                        onChange={(event) =>
-                          updateRate("carrierApiKey", event.target.value)
-                        }
-                      />
-                    </label>
+                    <TextField
+                      label="API Key"
+                      requiredIndicator
+                      value={rateDraft.carrierApiKey}
+                      onChange={(value) => updateRate("carrierApiKey", value)}
+                      autoComplete="off"
+                    />
                   )}
 
                   {rateDraft.calculation === "USPS" && (
                     <>
-                      <div className={styles.dynamicRateGrid}>
-                        <label>
-                          Client ID
-                          <input
+                      <InlineStack gap="300" wrap={false}>
+                        <Box width="100%">
+                          <TextField
+                            label="Client ID"
                             value={rateDraft.carrierApiKey}
-                            onChange={(event) =>
-                              updateRate("carrierApiKey", event.target.value)
+                            onChange={(value) =>
+                              updateRate("carrierApiKey", value)
                             }
+                            autoComplete="off"
                           />
-                        </label>
-                        <label>
-                          Client Secret
-                          <input
+                        </Box>
+                        <Box width="100%">
+                          <TextField
+                            label="Client Secret"
                             type="password"
                             value={rateDraft.carrierSecret}
-                            onChange={(event) =>
-                              updateRate("carrierSecret", event.target.value)
+                            onChange={(value) =>
+                              updateRate("carrierSecret", value)
                             }
+                            autoComplete="off"
                           />
-                        </label>
-                      </div>
-                      <label>
-                        Rate schedule
-                        <select
-                          value={rateDraft.carrierSchedule}
-                          onChange={(event) =>
-                            updateRate("carrierSchedule", event.target.value)
-                          }
-                        >
-                          <option>Retail</option>
-                          <option>Commercial</option>
-                        </select>
-                      </label>
-                      <label>
-                        Select which rates to show
-                        <select
-                          value={rateDraft.ratesToShow}
-                          onChange={(event) =>
-                            updateRate("ratesToShow", event.target.value)
-                          }
-                        >
-                          <option>All rates</option>
-                          <option>lowest rate only</option>
-                          <option>Highest rate only</option>
-                        </select>
-                      </label>
-                      <div className={styles.carrierServices}>
+                        </Box>
+                      </InlineStack>
+                      <Select
+                        label="Rate schedule"
+                        options={["Retail", "Commercial"]}
+                        value={rateDraft.carrierSchedule}
+                        onChange={(value) =>
+                          updateRate("carrierSchedule", value)
+                        }
+                      />
+                      <Select
+                        label="Select which rates to show"
+                        options={["All rates", "lowest rate only", "Highest rate only"]}
+                        value={rateDraft.ratesToShow}
+                        onChange={(value) => updateRate("ratesToShow", value)}
+                      />
+                      <BlockStack gap="300">
                         {[
                           ["Domestic Services", uspsDomesticServices],
                           ["International Services", uspsInternationalServices],
                         ].map(([heading, services]) => (
-                          <div key={heading}>
-                            <strong>{heading}</strong>
+                          <BlockStack gap="150" key={heading}>
+                            <Text as="p" fontWeight="semibold">
+                              {heading}
+                            </Text>
                             {services.map((service) => (
-                              <label key={service}>
-                                <input
-                                  type="checkbox"
-                                  checked={rateDraft.selectedServices.includes(
-                                    service,
-                                  )}
-                                  onChange={() => toggleCarrierService(service)}
-                                />
-                                {service}
-                              </label>
+                              <Checkbox
+                                key={service}
+                                label={service}
+                                checked={rateDraft.selectedServices.includes(
+                                  service,
+                                )}
+                                onChange={() => toggleCarrierService(service)}
+                              />
                             ))}
-                          </div>
+                          </BlockStack>
                         ))}
-                      </div>
+                      </BlockStack>
                     </>
                   )}
 
                   {rateDraft.calculation === "Fedex" && (
                     <>
-                      <div className={styles.dynamicRateGrid}>
-                        <label>
-                          API Key
-                          <input
+                      <InlineStack gap="300" wrap={false}>
+                        <Box width="100%">
+                          <TextField
+                            label="API Key"
                             value={rateDraft.carrierApiKey}
-                            onChange={(event) =>
-                              updateRate("carrierApiKey", event.target.value)
+                            onChange={(value) =>
+                              updateRate("carrierApiKey", value)
                             }
+                            autoComplete="off"
                           />
-                        </label>
-                        <label>
-                          Secret Key
-                          <input
+                        </Box>
+                        <Box width="100%">
+                          <TextField
+                            label="Secret Key"
                             type="password"
                             value={rateDraft.carrierSecret}
-                            onChange={(event) =>
-                              updateRate("carrierSecret", event.target.value)
+                            onChange={(value) =>
+                              updateRate("carrierSecret", value)
                             }
+                            autoComplete="off"
                           />
-                        </label>
-                      </div>
-                      <label>
-                        Account Number
-                        <input
-                          value={rateDraft.carrierAccount}
-                          onChange={(event) =>
-                            updateRate("carrierAccount", event.target.value)
-                          }
-                        />
-                      </label>
+                        </Box>
+                      </InlineStack>
+                      <TextField
+                        label="Account Number"
+                        value={rateDraft.carrierAccount}
+                        onChange={(value) => updateRate("carrierAccount", value)}
+                        autoComplete="off"
+                      />
                     </>
                   )}
 
                   {rateDraft.calculation === "Shiprocket" && (
-                    <div className={styles.dynamicRateGrid}>
-                      <label>
-                        Email ID
-                        <input
+                    <InlineStack gap="300" wrap={false}>
+                      <Box width="100%">
+                        <TextField
+                          label="Email ID"
                           type="email"
                           value={rateDraft.carrierEmail}
-                          onChange={(event) =>
-                            updateRate("carrierEmail", event.target.value)
-                          }
+                          onChange={(value) => updateRate("carrierEmail", value)}
+                          autoComplete="off"
                         />
-                      </label>
-                      <label>
-                        Password
-                        <input
+                      </Box>
+                      <Box width="100%">
+                        <TextField
+                          label="Password"
                           type="password"
                           value={rateDraft.carrierPassword}
-                          onChange={(event) =>
-                            updateRate("carrierPassword", event.target.value)
+                          onChange={(value) =>
+                            updateRate("carrierPassword", value)
                           }
+                          autoComplete="off"
                         />
-                      </label>
-                    </div>
+                      </Box>
+                    </InlineStack>
                   )}
 
                   {rateDraft.calculation === "Direct Freight Express" && (
                     <>
-                      <div className={styles.dynamicRateGrid}>
-                        <label>
-                          API Key
-                          <input
+                      <InlineStack gap="300" wrap={false}>
+                        <Box width="100%">
+                          <TextField
+                            label="API Key"
                             value={rateDraft.carrierApiKey}
-                            onChange={(event) =>
-                              updateRate("carrierApiKey", event.target.value)
+                            onChange={(value) =>
+                              updateRate("carrierApiKey", value)
                             }
+                            autoComplete="off"
                           />
-                        </label>
-                        <label>
-                          Account Number
-                          <input
+                        </Box>
+                        <Box width="100%">
+                          <TextField
+                            label="Account Number"
                             value={rateDraft.carrierAccount}
-                            onChange={(event) =>
-                              updateRate("carrierAccount", event.target.value)
+                            onChange={(value) =>
+                              updateRate("carrierAccount", value)
                             }
+                            autoComplete="off"
                           />
-                        </label>
-                      </div>
-                      <label>
-                        Rate Type
-                        <select
-                          value={rateDraft.carrierRateType}
-                          onChange={(event) =>
-                            updateRate("carrierRateType", event.target.value)
-                          }
-                        >
-                          <option>Item</option>
-                          <option>Pallet</option>
-                          <option>Skid</option>
-                          <option>Carton</option>
-                        </select>
-                      </label>
-                      <label className={styles.carrierCheckbox}>
-                        <input
-                          type="checkbox"
-                          checked={rateDraft.fuelLevy}
-                          onChange={(event) =>
-                            updateRate("fuelLevy", event.target.checked)
-                          }
-                        />
-                        <span>
-                          Fuel Levy Charges
-                          <small>
-                            Add fuel levy charges to the final delivery cost
-                          </small>
-                        </span>
-                      </label>
+                        </Box>
+                      </InlineStack>
+                      <Select
+                        label="Rate Type"
+                        options={["Item", "Pallet", "Skid", "Carton"]}
+                        value={rateDraft.carrierRateType}
+                        onChange={(value) =>
+                          updateRate("carrierRateType", value)
+                        }
+                      />
+                      <Checkbox
+                        label="Fuel Levy Charges"
+                        helpText="Add fuel levy charges to the final delivery cost"
+                        checked={rateDraft.fuelLevy}
+                        onChange={(value) => updateRate("fuelLevy", value)}
+                      />
                     </>
                   )}
 
                   {rateDraft.calculation === "Stallion Express" && (
                     <>
-                      <label>
-                        API Key
-                        <input
-                          value={rateDraft.carrierApiKey}
-                          onChange={(event) =>
-                            updateRate("carrierApiKey", event.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        Package type
-                        <select
-                          value={rateDraft.packageType}
-                          onChange={(event) =>
-                            updateRate("packageType", event.target.value)
-                          }
-                        >
-                          {[
-                            "Parcel",
-                            "Legal Flat Rate Envelope",
-                            "Flat Rate Padded Envelope",
-                            "Small Flat Rate Box",
-                            "Medium Flat Rate Box 1",
-                            "Medium Flat Rate Box 2",
-                            "Large Flat Rate Box",
-                            "Regional Rate Box A1",
-                            "Regional Rate Box A2",
-                            "Regional Rate Box B1",
-                            "Regional Rate Box B2",
-                            "Letter",
-                            "Large Envelope Or Flat",
-                            "Thick Envelope",
-                          ].map((type) => (
-                            <option key={type}>{type}</option>
-                          ))}
-                        </select>
-                      </label>
+                      <TextField
+                        label="API Key"
+                        value={rateDraft.carrierApiKey}
+                        onChange={(value) => updateRate("carrierApiKey", value)}
+                        autoComplete="off"
+                      />
+                      <Select
+                        label="Package type"
+                        options={stallionPackageTypeOptions}
+                        value={rateDraft.packageType}
+                        onChange={(value) => updateRate("packageType", value)}
+                      />
                     </>
                   )}
 
                   {rateDraft.calculation === "ShipStation" && (
                     <>
-                      <label>
-                        API Key
-                        <input
-                          value={rateDraft.carrierApiKey}
-                          onChange={(event) =>
-                            updateRate("carrierApiKey", event.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        API Secret
-                        <input
-                          type="password"
-                          value={rateDraft.carrierSecret}
-                          onChange={(event) =>
-                            updateRate("carrierSecret", event.target.value)
-                          }
-                        />
-                      </label>
-                      <button type="button" className={styles.outlineButton}>
-                        Fetch Carriers
-                      </button>
-                      <h4>Box Configuration</h4>
+                      <TextField
+                        label="API Key"
+                        value={rateDraft.carrierApiKey}
+                        onChange={(value) => updateRate("carrierApiKey", value)}
+                        autoComplete="off"
+                      />
+                      <TextField
+                        label="API Secret"
+                        type="password"
+                        value={rateDraft.carrierSecret}
+                        onChange={(value) => updateRate("carrierSecret", value)}
+                        autoComplete="off"
+                      />
+                      <Box>
+                        <Button>Fetch Carriers</Button>
+                      </Box>
+                      <Text as="h4" variant="headingSm">
+                        Box Configuration
+                      </Text>
                     </>
                   )}
 
                   {["Fedex", "Shiprocket"].includes(rateDraft.calculation) && (
-                    <label className={styles.carrierCheckbox}>
-                      <input
-                        type="checkbox"
-                        checked={rateDraft.hideDeliveryDates}
-                        onChange={(event) =>
-                          updateRate("hideDeliveryDates", event.target.checked)
-                        }
-                      />
-                      <span>
-                        Hide estimated delivery dates
-                        <small>
-                          Estimated delivery dates are calculated by{" "}
-                          {rateDraft.calculation}
-                        </small>
-                      </span>
-                    </label>
+                    <Checkbox
+                      label="Hide estimated delivery dates"
+                      helpText={`Estimated delivery dates are calculated by ${rateDraft.calculation}`}
+                      checked={rateDraft.hideDeliveryDates}
+                      onChange={(value) =>
+                        updateRate("hideDeliveryDates", value)
+                      }
+                    />
                   )}
 
                   {rateDraft.calculation === "Shiprocket" && (
-                    <label>
-                      Select which rates to show
-                      <select
-                        value={rateDraft.ratesToShow}
-                        onChange={(event) =>
-                          updateRate("ratesToShow", event.target.value)
-                        }
-                      >
-                        <option>All rates</option>
-                        <option>Lowest rate only</option>
-                        <option>Highest rate only</option>
-                      </select>
-                    </label>
+                    <Select
+                      label="Select which rates to show"
+                      options={["All rates", "Lowest rate only", "Highest rate only"]}
+                      value={rateDraft.ratesToShow}
+                      onChange={(value) => updateRate("ratesToShow", value)}
+                    />
                   )}
 
                   {renderPackagingFields(
@@ -1209,471 +1169,430 @@ export default function NewShippingRateRule() {
 
                   {rateDraft.calculation === "Stallion Express" && (
                     <>
-                      <label>
-                        Signature required
-                        <select
-                          value={rateDraft.signatureRequired}
-                          onChange={(event) =>
-                            updateRate("signatureRequired", event.target.value)
-                          }
-                        >
-                          <option>No</option>
-                          <option>Yes</option>
-                        </select>
-                      </label>
-                      <label>
-                        Insured
-                        <select
-                          value={rateDraft.insured}
-                          onChange={(event) =>
-                            updateRate("insured", event.target.value)
-                          }
-                        >
-                          <option>No</option>
-                          <option>Yes</option>
-                        </select>
-                      </label>
+                      <Select
+                        label="Signature required"
+                        options={["No", "Yes"]}
+                        value={rateDraft.signatureRequired}
+                        onChange={(value) =>
+                          updateRate("signatureRequired", value)
+                        }
+                      />
+                      <Select
+                        label="Insured"
+                        options={["No", "Yes"]}
+                        value={rateDraft.insured}
+                        onChange={(value) => updateRate("insured", value)}
+                      />
                     </>
                   )}
 
                   {["USPS", "Fedex", "Stallion Express"].includes(
                     rateDraft.calculation,
                   ) && (
-                    <label>
-                      Discount (Optional)
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={rateDraft.discount}
-                        onChange={(event) =>
-                          updateRate("discount", event.target.value)
-                        }
-                      />
-                      <small>Discount all rates by a specific percentage</small>
-                    </label>
+                    <TextField
+                      label="Discount (Optional)"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={rateDraft.discount}
+                      onChange={(value) => updateRate("discount", value)}
+                      helpText="Discount all rates by a specific percentage"
+                      autoComplete="off"
+                    />
                   )}
 
                   {rateDraft.calculation === "Fedex" && (
-                    <div className={styles.dynamicRateGrid}>
-                      <RateValueField
-                        label="Handling Fees"
-                        suffix="%"
-                        value={rateDraft.handlingPercent}
-                        onChange={(event) =>
-                          updateRate("handlingPercent", event.target.value)
-                        }
-                      />
-                      <RateValueField
-                        label="Handling Fees"
-                        suffix={currencyCode}
-                        value={rateDraft.handlingFixed}
-                        onChange={(event) =>
-                          updateRate("handlingFixed", event.target.value)
-                        }
-                      />
-                    </div>
+                    <InlineStack gap="300" wrap={false}>
+                      <Box width="100%">
+                        <TextField
+                          label="Handling Fees"
+                          type="number"
+                          suffix="%"
+                          value={rateDraft.handlingPercent}
+                          onChange={(value) =>
+                            updateRate("handlingPercent", value)
+                          }
+                          autoComplete="off"
+                        />
+                      </Box>
+                      <Box width="100%">
+                        <TextField
+                          label="Handling Fees"
+                          type="number"
+                          suffix={currencyCode}
+                          value={rateDraft.handlingFixed}
+                          onChange={(value) =>
+                            updateRate("handlingFixed", value)
+                          }
+                          autoComplete="off"
+                        />
+                      </Box>
+                    </InlineStack>
                   )}
 
                   {rateDraft.calculation !== "ShipStation" && (
-                    <label>
-                      Default rate
-                      {["Fedex", "Stallion Express"].includes(
-                        rateDraft.calculation,
-                      )
-                        ? " (Optional)"
-                        : ""}
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={rateDraft.defaultRate}
-                        onChange={(event) =>
-                          updateRate("defaultRate", event.target.value)
+                    <TextField
+                      label={`Default rate${
+                        ["Fedex", "Stallion Express"].includes(
+                          rateDraft.calculation,
+                        )
+                          ? " (Optional)"
+                          : ""
+                      }`}
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={rateDraft.defaultRate}
+                      onChange={(value) => updateRate("defaultRate", value)}
+                      helpText="This rate will be applied if there is no response / rate from the carrier during rate query."
+                      autoComplete="off"
+                    />
+                  )}
+                </BlockStack>
+              ) : isDynamicRate ? (
+                <BlockStack gap="300">
+                  {rateDraft.calculation === "Distance" && (
+                    <BlockStack gap="300">
+                      <TextField
+                        label="Google maps API key"
+                        requiredIndicator
+                        value={rateDraft.googleMapsApiKey}
+                        onChange={(value) =>
+                          updateRate("googleMapsApiKey", value)
+                        }
+                        autoComplete="off"
+                      />
+                      <Divider />
+                      <Select
+                        label="Origin Location"
+                        requiredIndicator
+                        options={["Default Shopify Location", "Custom Location"]}
+                        value={rateDraft.originLocation}
+                        onChange={(value) =>
+                          updateRate("originLocation", value)
                         }
                       />
-                      <small>
-                        This rate will be applied if there is no response / rate
-                        from the carrier during rate query.
-                      </small>
-                    </label>
-                  )}
-                </div>
-              ) : isDynamicRate ? (
-                <div className={styles.dynamicRateFields}>
-                  {rateDraft.calculation === "Distance" && (
-                    <div className={styles.distanceRateFields}>
-                      <label>
-                        <span className={styles.requiredLabel}>
-                          Google maps API key <b>*</b>
-                        </span>
-                        <input
-                          value={rateDraft.googleMapsApiKey}
-                          onChange={(event) =>
-                            updateRate("googleMapsApiKey", event.target.value)
-                          }
-                        />
-                      </label>
-                      <hr />
-                      <label>
-                        <span className={styles.requiredLabel}>
-                          Origin Location <b>*</b>
-                        </span>
-                        <select
-                          value={rateDraft.originLocation}
-                          onChange={(event) =>
-                            updateRate("originLocation", event.target.value)
-                          }
-                        >
-                          <option>Default Shopify Location</option>
-                          <option>Custom Location</option>
-                        </select>
-                      </label>
                       {rateDraft.originLocation === "Custom Location" && (
-                        <div className={styles.dynamicRateGrid}>
-                          <label>
-                            <span className={styles.requiredLabel}>
-                              Country <b>*</b>
-                            </span>
-                            <select
+                        <InlineStack gap="300" wrap={false}>
+                          <Box width="100%">
+                            <Select
+                              label="Country"
+                              requiredIndicator
+                              options={countryOptions.map((country) => ({
+                                label: country.name,
+                                value: country.code,
+                              }))}
                               value={rateDraft.originCountry}
-                              onChange={(event) =>
-                                updateRate("originCountry", event.target.value)
-                              }
-                            >
-                              {countryOptions.map((country) => (
-                                <option key={country.code} value={country.code}>
-                                  {country.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label>
-                            <span className={styles.requiredLabel}>
-                              Postcode <b>*</b>
-                            </span>
-                            <input
-                              value={rateDraft.originPostcode}
-                              onChange={(event) =>
-                                updateRate("originPostcode", event.target.value)
+                              onChange={(value) =>
+                                updateRate("originCountry", value)
                               }
                             />
-                          </label>
-                        </div>
+                          </Box>
+                          <Box width="100%">
+                            <TextField
+                              label="Postcode"
+                              requiredIndicator
+                              value={rateDraft.originPostcode}
+                              onChange={(value) =>
+                                updateRate("originPostcode", value)
+                              }
+                              autoComplete="off"
+                            />
+                          </Box>
+                        </InlineStack>
                       )}
-                      <hr />
-                      <label>
-                        <span className={styles.requiredLabel}>
-                          Distance calculation method (in kilometers) <b>*</b>
-                        </span>
-                        <select
-                          value={rateDraft.distanceMethod}
-                          onChange={(event) =>
-                            updateRate("distanceMethod", event.target.value)
-                          }
-                        >
-                          <option>Driving</option>
-                          <option>Straight Line</option>
-                        </select>
-                      </label>
-                      <hr />
-                    </div>
+                      <Divider />
+                      <Select
+                        label="Distance calculation method (in kilometers)"
+                        requiredIndicator
+                        options={["Driving", "Straight Line"]}
+                        value={rateDraft.distanceMethod}
+                        onChange={(value) =>
+                          updateRate("distanceMethod", value)
+                        }
+                      />
+                      <Divider />
+                    </BlockStack>
                   )}
                   {isSumMetafieldRate && (
                     <>
-                      <label>
-                        <span className={styles.requiredLabel}>
-                          {rateDraft.calculation === "Sum Of Variant Metafield"
+                      <TextField
+                        label={
+                          rateDraft.calculation === "Sum Of Variant Metafield"
                             ? "Namespace and key"
-                            : "Key"}{" "}
-                          <b>*</b>
-                        </span>
-                        <input
-                          value={rateDraft.metafieldKey}
-                          placeholder={
-                            rateDraft.calculation === "Sum Of Variant Metafield"
-                              ? "Namespace.Key"
-                              : "Key"
-                          }
-                          onChange={(event) =>
-                            updateRate("metafieldKey", event.target.value)
-                          }
-                        />
-                      </label>
-                      <hr />
+                            : "Key"
+                        }
+                        requiredIndicator
+                        placeholder={
+                          rateDraft.calculation === "Sum Of Variant Metafield"
+                            ? "Namespace.Key"
+                            : "Key"
+                        }
+                        value={rateDraft.metafieldKey}
+                        onChange={(value) => updateRate("metafieldKey", value)}
+                        autoComplete="off"
+                      />
+                      <Divider />
                     </>
                   )}
-                  <div className={styles.dynamicRateType}>
-                    <p>Rate Type</p>
-                    {[
-                      "Range",
-                      "Incremental",
-                      "Range + Incremental",
-                      "Range + Range",
-                    ].map((type) => (
-                      <label className={styles.radioLabel} key={type}>
-                        <input
-                          type="radio"
-                          name="rate-type"
-                          checked={rateDraft.rateType === type}
-                          onChange={() => updateRate("rateType", type)}
-                        />
-                        {type}
-                      </label>
+
+                  <BlockStack gap="150">
+                    <Text as="p">Rate Type</Text>
+                    {rateTypeOptions.map((type) => (
+                      <RadioButton
+                        key={type}
+                        label={type}
+                        name="rate-type"
+                        checked={rateDraft.rateType === type}
+                        onChange={() => updateRate("rateType", type)}
+                      />
                     ))}
-                  </div>
+                  </BlockStack>
 
                   {rateDraft.rateType !== "Incremental" && (
-                    <div className={styles.dynamicRateGrid}>
-                      <RateValueField
-                        label="Range Start"
-                        required
-                        suffix={parameterSuffix}
-                        value={rateDraft.rangeStart}
-                        onChange={(event) =>
-                          updateRate("rangeStart", event.target.value)
-                        }
-                      />
-                      <RateValueField
-                        label="Range End"
-                        suffix={parameterSuffix}
-                        help="Leave empty for unlimited"
-                        value={rateDraft.rangeEnd}
-                        onChange={(event) =>
-                          updateRate("rangeEnd", event.target.value)
-                        }
-                      />
-                    </div>
+                    <InlineStack gap="300" wrap={false}>
+                      <Box width="100%">
+                        <TextField
+                          label="Range Start"
+                          requiredIndicator
+                          type="number"
+                          suffix={parameterSuffix}
+                          value={rateDraft.rangeStart}
+                          onChange={(value) =>
+                            updateRate("rangeStart", value)
+                          }
+                          autoComplete="off"
+                        />
+                      </Box>
+                      <Box width="100%">
+                        <TextField
+                          label="Range End"
+                          type="number"
+                          suffix={parameterSuffix}
+                          helpText="Leave empty for unlimited"
+                          value={rateDraft.rangeEnd}
+                          onChange={(value) => updateRate("rangeEnd", value)}
+                          autoComplete="off"
+                        />
+                      </Box>
+                    </InlineStack>
                   )}
 
                   {["Range + Incremental", "Range + Range"].includes(
                     rateDraft.rateType,
                   ) && (
-                    <label className={styles.priceCalculationField}>
-                      Price calculation parameter
-                      <select
-                        value={rateDraft.priceCalculation}
-                        onChange={(event) =>
-                          updateRate("priceCalculation", event.target.value)
-                        }
-                      >
-                        <option>Number of items</option>
-                        <option>Total weight of items</option>
-                        <option>Total price of items</option>
-                      </select>
-                    </label>
+                    <Select
+                      label="Price calculation parameter"
+                      options={[
+                        "Number of items",
+                        "Total weight of items",
+                        "Total price of items",
+                      ]}
+                      value={rateDraft.priceCalculation}
+                      onChange={(value) =>
+                        updateRate("priceCalculation", value)
+                      }
+                    />
                   )}
 
                   {["Incremental", "Range + Incremental"].includes(
                     rateDraft.rateType,
                   ) && (
-                    <div className={styles.dynamicRateGrid}>
-                      <RateValueField
-                        label="Base Price"
-                        required
-                        suffix={currencyCode}
-                        value={rateDraft.basePrice}
-                        onChange={(event) =>
-                          updateRate("basePrice", event.target.value)
-                        }
-                      />
-                      <RateValueField
-                        label="Incremental price"
-                        required
-                        suffix={currencyCode}
-                        value={rateDraft.incrementalPrice}
-                        onChange={(event) =>
-                          updateRate("incrementalPrice", event.target.value)
-                        }
-                      />
-                      <RateValueField
-                        label="Per each"
-                        required
-                        suffix={incrementalParameterSuffix}
-                        value={rateDraft.perEach}
-                        onChange={(event) =>
-                          updateRate("perEach", event.target.value)
-                        }
-                      />
-                      <RateValueField
-                        label="Start From"
-                        suffix={incrementalParameterSuffix}
-                        help="Leave empty for default value"
-                        value={rateDraft.startFrom}
-                        onChange={(event) =>
-                          updateRate("startFrom", event.target.value)
-                        }
-                      />
-                    </div>
+                    <InlineStack gap="300" wrap>
+                      <Box minWidth="45%">
+                        <TextField
+                          label="Base Price"
+                          requiredIndicator
+                          type="number"
+                          suffix={currencyCode}
+                          value={rateDraft.basePrice}
+                          onChange={(value) => updateRate("basePrice", value)}
+                          autoComplete="off"
+                        />
+                      </Box>
+                      <Box minWidth="45%">
+                        <TextField
+                          label="Incremental price"
+                          requiredIndicator
+                          type="number"
+                          suffix={currencyCode}
+                          value={rateDraft.incrementalPrice}
+                          onChange={(value) =>
+                            updateRate("incrementalPrice", value)
+                          }
+                          autoComplete="off"
+                        />
+                      </Box>
+                      <Box minWidth="45%">
+                        <TextField
+                          label="Per each"
+                          requiredIndicator
+                          type="number"
+                          suffix={incrementalParameterSuffix}
+                          value={rateDraft.perEach}
+                          onChange={(value) => updateRate("perEach", value)}
+                          autoComplete="off"
+                        />
+                      </Box>
+                      <Box minWidth="45%">
+                        <TextField
+                          label="Start From"
+                          type="number"
+                          suffix={incrementalParameterSuffix}
+                          helpText="Leave empty for default value"
+                          value={rateDraft.startFrom}
+                          onChange={(value) => updateRate("startFrom", value)}
+                          autoComplete="off"
+                        />
+                      </Box>
+                    </InlineStack>
                   )}
 
                   {rateDraft.rateType === "Range" && (
-                    <RateValueField
+                    <TextField
                       label="Price"
-                      required
+                      requiredIndicator
+                      type="number"
                       suffix={currencyCode}
                       value={rateDraft.price}
-                      onChange={(event) =>
-                        updateRate("price", event.target.value)
-                      }
+                      onChange={(value) => updateRate("price", value)}
+                      autoComplete="off"
                     />
                   )}
 
                   {rateDraft.rateType === "Range + Range" && (
                     <>
-                      <div className={styles.dynamicRateGrid}>
-                        <RateValueField
-                          label="Range Start"
-                          required
-                          suffix={priceCalculationSuffix}
-                          value={rateDraft.secondRangeStart}
-                          onChange={(event) =>
-                            updateRate("secondRangeStart", event.target.value)
-                          }
-                        />
-                        <RateValueField
-                          label="Range End"
-                          suffix={priceCalculationSuffix}
-                          value={rateDraft.secondRangeEnd}
-                          onChange={(event) =>
-                            updateRate("secondRangeEnd", event.target.value)
-                          }
-                        />
-                      </div>
-                      <RateValueField
+                      <InlineStack gap="300" wrap={false}>
+                        <Box width="100%">
+                          <TextField
+                            label="Range Start"
+                            requiredIndicator
+                            type="number"
+                            suffix={priceCalculationSuffix}
+                            value={rateDraft.secondRangeStart}
+                            onChange={(value) =>
+                              updateRate("secondRangeStart", value)
+                            }
+                            autoComplete="off"
+                          />
+                        </Box>
+                        <Box width="100%">
+                          <TextField
+                            label="Range End"
+                            type="number"
+                            suffix={priceCalculationSuffix}
+                            value={rateDraft.secondRangeEnd}
+                            onChange={(value) =>
+                              updateRate("secondRangeEnd", value)
+                            }
+                            autoComplete="off"
+                          />
+                        </Box>
+                      </InlineStack>
+                      <TextField
                         label="Price"
-                        required
+                        requiredIndicator
+                        type="number"
                         suffix={currencyCode}
                         value={rateDraft.price}
-                        onChange={(event) =>
-                          updateRate("price", event.target.value)
-                        }
+                        onChange={(value) => updateRate("price", value)}
+                        autoComplete="off"
                       />
                     </>
                   )}
-                </div>
+                </BlockStack>
               ) : isMetafieldRate ? (
-                <div className={styles.metafieldRateFields}>
-                  <label>
-                    <span className={styles.requiredLabel}>
-                      {rateDraft.calculation === "Variant Metafield"
+                <BlockStack gap="300">
+                  <TextField
+                    label={
+                      rateDraft.calculation === "Variant Metafield"
                         ? "Namespace and key"
-                        : "Key"}{" "}
-                      <b>*</b>
-                    </span>
-                    <input
-                      value={rateDraft.metafieldKey}
-                      placeholder={
-                        rateDraft.calculation === "Variant Metafield"
-                          ? "Namespace.Key"
-                          : "Key"
-                      }
-                      onChange={(event) =>
-                        updateRate("metafieldKey", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className={styles.metafieldRateCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={rateDraft.increasePerItem}
-                      onChange={(event) =>
-                        updateRate("increasePerItem", event.target.checked)
-                      }
-                    />
-                    Increase rate per item
-                  </label>
-                  <hr />
-                  <label>
-                    Default rate
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={rateDraft.defaultRate}
-                      onChange={(event) =>
-                        updateRate("defaultRate", event.target.value)
-                      }
-                    />
-                  </label>
-                  <p>
+                        : "Key"
+                    }
+                    requiredIndicator
+                    placeholder={
+                      rateDraft.calculation === "Variant Metafield"
+                        ? "Namespace.Key"
+                        : "Key"
+                    }
+                    value={rateDraft.metafieldKey}
+                    onChange={(value) => updateRate("metafieldKey", value)}
+                    autoComplete="off"
+                  />
+                  <Checkbox
+                    label="Increase rate per item"
+                    checked={rateDraft.increasePerItem}
+                    onChange={(value) => updateRate("increasePerItem", value)}
+                  />
+                  <Divider />
+                  <TextField
+                    label="Default rate"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={rateDraft.defaultRate}
+                    onChange={(value) => updateRate("defaultRate", value)}
+                    autoComplete="off"
+                  />
+                  <Text as="p" tone="subdued">
                     This rate will be applied if there is no value present in
                     metafield for a
                     {rateDraft.calculation === "Variant Metafield"
                       ? "n SKU"
                       : " product"}
                     .
-                  </p>
-                </div>
+                  </Text>
+                </BlockStack>
               ) : (
-                <label>
-                  <span className={styles.requiredLabel}>
-                    {rateDraft.calculation === "Percentage of total price"
+                <TextField
+                  label={
+                    rateDraft.calculation === "Percentage of total price"
                       ? "Percentage"
-                      : "Price"}{" "}
-                    <b>*</b>
-                  </span>
-                  <span className={styles.priceInput}>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={rateDraft.price}
-                      onChange={(event) =>
-                        updateRate("price", event.target.value)
-                      }
-                    />
-                    <i>
-                      {rateDraft.calculation === "Percentage of total price"
-                        ? `%${currencyCodes[rateDraft.currency] || "USD"}`
-                        : currencyCodes[rateDraft.currency] || "USD"}
-                    </i>
-                  </span>
-                </label>
+                      : "Price"
+                  }
+                  requiredIndicator
+                  type="number"
+                  min={0}
+                  step={1}
+                  suffix={
+                    rateDraft.calculation === "Percentage of total price"
+                      ? `%${currencyCodes[rateDraft.currency] || "USD"}`
+                      : currencyCodes[rateDraft.currency] || "USD"
+                  }
+                  value={rateDraft.price}
+                  onChange={(value) => updateRate("price", value)}
+                  autoComplete="off"
+                />
               )}
+
               {!isMetafieldRate &&
                 rateDraft.calculation === "Percentage of total price" && (
-                  <div className={styles.roundUpOption}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={rateDraft.roundUp}
-                        onChange={(event) =>
-                          updateRate("roundUp", event.target.checked)
-                        }
-                      />
-                      Round up to nearest integer
-                    </label>
-                    <p>For e.g. $2.67 will rounded up to $3</p>
-                  </div>
+                  <Checkbox
+                    label="Round up to nearest integer"
+                    helpText="For e.g. $2.67 will rounded up to $3"
+                    checked={rateDraft.roundUp}
+                    onChange={(value) => updateRate("roundUp", value)}
+                  />
                 )}
-              <hr />
-              <h3>Advanced</h3>
-              <label>
-                Tags
-                <input
-                  value={rateDraft.tags}
-                  onChange={(event) => updateRate("tags", event.target.value)}
-                />
-              </label>
-              <p>Comma separated values are allowed.</p>
-            </div>
-            <footer>
-              <button type="button" onClick={closeRateModal}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.darkButton}
-                disabled={!canSaveRate}
-                onClick={saveRate}
-              >
-                Done
-              </button>
-            </footer>
-          </section>
-        </div>
-      )}
-    </s-page>
+            </BlockStack>
+
+            <Divider />
+
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                Advanced
+              </Text>
+              <TextField
+                label="Tags"
+                value={rateDraft.tags}
+                onChange={(value) => updateRate("tags", value)}
+                helpText="Comma separated values are allowed."
+                autoComplete="off"
+              />
+            </BlockStack>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+    </Page>
   );
 }

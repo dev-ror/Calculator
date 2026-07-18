@@ -1,66 +1,76 @@
 import { useNavigate } from "react-router";
-import styles from "../app.module.css";
-import AppPageHeader from "../components/AppPageHeader";
+import {
+  Page,
+  Card,
+  EmptyState,
+  Banner,
+  List,
+  Link,
+  BlockStack,
+  InlineStack,
+  Text,
+  Box,
+} from "@shopify/polaris";
 
 export default function RatesIndex() {
   const navigate = useNavigate();
   const addRule = () => navigate("/app/rates/new");
 
   return (
-    <s-page inlineSize="large">
-      <div className={styles.rateTitleRow}>
-        <AppPageHeader title="Shipping Rates" />
-        <button className={styles.darkButton} type="button" onClick={addRule}>
-          Add Rule
-        </button>
-      </div>
-      <div className={styles.ratesPage}>
-        <div className={styles.ratesEmptyCard}>
-          <div className={styles.ccsWarning}>
-            <span className={styles.warningIcon}>◇</span>
-            <div>
-              <strong>CCS is not enabled for your store.</strong>
-              <ul>
-                <li>
-                  CCS is required to show shipping rates from all shipping rate
-                  apps in Shopify.
-                </li>
-                <li>
-                  Click{" "}
-                  <a
-                    href="https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/enabling-shipping-carriers"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    here
-                  </a>{" "}
-                  to know more about CCS and how to enable it.
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className={styles.rulesEmptyState}>
-            <div className={styles.emptyDocument} aria-hidden="true">
-              <span></span>
-              <i></i>
-              <i></i>
-              <i></i>
-            </div>
-            <strong>You haven&apos;t created any rules yet.</strong>
-            <button
-              className={styles.darkButton}
-              type="button"
-              onClick={addRule}
-            >
-              Add Rule
-            </button>
-          </div>
-        </div>
-        <p className={styles.ratesHelp}>
-          <a href="#learn">Learn</a> more about Shipping Rates |{" "}
-          <a href="#troubleshoot">Troubleshoot</a> Shipping Rates
-        </p>
-      </div>
-    </s-page>
+    <Page
+      title="Shipping Rates"
+      backAction={{ content: "Back", onAction: () => navigate(-1) }}
+      primaryAction={{
+        content: "Add Rule",
+        onAction: addRule,
+      }}
+    >
+      <BlockStack gap="400">
+        <Card padding="0">
+          <BlockStack>
+            {/* CCS Warning Banner */}
+            <Box padding="400">
+              <Banner tone="critical" title="CCS is not enabled for your store.">
+                <List>
+                  <List.Item>
+                    CCS is required to show shipping rates from all shipping rate apps in Shopify.
+                  </List.Item>
+                  <List.Item>
+                    Click{" "}
+                    <Link
+                      url="https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/enabling-shipping-carriers"
+                      external
+                    >
+                      here
+                    </Link>{" "}
+                    to know more about CCS and how to enable it.
+                  </List.Item>
+                </List>
+              </Banner>
+            </Box>
+
+            {/* Empty State */}
+            <EmptyState
+              heading="You haven't created any rules yet."
+              action={{
+                content: "Add Rule",
+                onAction: addRule,
+              }}
+              image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+            />
+          </BlockStack>
+        </Card>
+
+        {/* Footer Help Links */}
+        <Box paddingBlockEnd="400">
+          <InlineStack align="center" gap="100">
+            <Text as="span" variant="bodyMd">
+              <Link url="#learn">Learn</Link> more about Shipping Rates |{" "}
+              <Link url="#troubleshoot">Troubleshoot</Link> Shipping Rates
+            </Text>
+          </InlineStack>
+        </Box>
+      </BlockStack>
+    </Page>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { authenticate } from "../shopify.server";
 import styles from "../app.module.css";
+import { Text, InlineStack, Button } from "@shopify/polaris";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -22,27 +23,52 @@ export default function Index() {
   return (
     <s-page heading="Shipping calculator: ShipMagic" inlineSize="large">
       <div className={styles.home}>
-        <h2>Get started</h2>
+        <Text variant="headingMd" as="h6">
+          Get started
+        </Text>
         <section className={styles.card}>
-          <h3>Get a free onboarding session</h3>
+          <Text variant="headingMd" as="h6">
+            Get a free onboarding session
+          </Text>
           <p>Reach out to our live chat and get a free onboarding session where we will help you set up the app quickly.</p>
           <div className={styles.review}>
-            <div className={styles.stars}>☆ ☆ ☆ ☆ ☆</div>
+            <div>⭐⭐⭐⭐⭐</div>
             <em>“The support is amazing, fast, responsive and accurate. They take time to understand your exact need and are pro-active at helping.”<br />~ Jacob Miller (Durant Cricket)</em>
           </div>
-          <div className={styles.actions}>
-            <button className={styles.primary} onClick={() => notify("An agent will be with you shortly")}>Talk to agent now</button>
-            <button onClick={() => notify("Onboarding request scheduled")}>Schedule for later</button>
-          </div>
-        </section>
+          <InlineStack gap="300">
+            <Button
+              variant="primary"
+              onClick={() =>
+                notify("An agent will be with you shortly.")
+              }
+            >
+              Talk to Agent
+            </Button>
 
+            <Button
+              onClick={() =>
+                notify("Onboarding scheduled.")
+              }
+            >
+              Schedule for Later
+            </Button>
+          </InlineStack>
+        </section>
         <section className={styles.card}>
-          <h3>Learn how to setup the app yourself</h3>
+          <Text variant="headingMd" as="h6">
+            Learn how to setup the app yourself
+          </Text>
           <p>Explore the instructional videos to learn how to set up the app yourself.</p>
-          <a className={styles.primaryLink} href="/app/videos">Watch videos</a>
+          <Button
+            url="/app/videos"
+            variant="primary"
+          >
+            Watch Videos
+          </Button>
         </section>
-
-        <h2>FAQs</h2>
+        <Text variant="headingMd" as="h6">
+          FAQs
+        </Text>
         <section className={`${styles.card} ${styles.faqCard}`}>
           {faqs.map(([question, answer], index) => (
             <div className={styles.faq} key={question}>

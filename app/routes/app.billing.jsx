@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import styles from "../app.module.css";
-import AppPageHeader from "../components/AppPageHeader";
+import { Page } from "@shopify/polaris";
+import { useNavigate } from "react-router";
 
 const plans = [
   {
@@ -44,12 +45,15 @@ const plans = [
 ];
 
 export default function Billing() {
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState("monthly");
   const shopify = useAppBridge();
 
   return (
-    <s-page inlineSize="large">
-      <AppPageHeader title="Billing" />
+    <Page
+      title="Shipping Rates"
+      backAction={{ content: "Back", onAction: () => navigate(-1) }}
+    >
       <div className={styles.billingPage}>
         <div
           className={styles.billingToggle}
@@ -134,6 +138,6 @@ export default function Billing() {
           <a href="mailto:support@shipmagic.app">here</a>
         </p>
       </div>
-    </s-page>
+    </Page>
   );
 }
