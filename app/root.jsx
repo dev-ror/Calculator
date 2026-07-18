@@ -1,6 +1,10 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { Spinner } from "@shopify/polaris";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigation } from "react-router";
 
 export default function App() {
+  const navigation = useNavigation();
+  const isNavigating = navigation.state === "loading" || navigation.state === "submitting";
+
   return (
     <html lang="en">
       <head>
@@ -15,7 +19,25 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        <div style={{ minHeight: "100vh", position: "relative" }}>
+          <Outlet />
+          {isNavigating && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(255,255,255,0.7)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 9999,
+              }}
+              aria-busy="true"
+            >
+              <Spinner accessibilityLabel="Loading page" size="large" />
+            </div>
+          )}
+        </div>
         <ScrollRestoration />
         <Scripts />
       </body>

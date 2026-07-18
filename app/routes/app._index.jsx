@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { authenticate } from "../shopify.server";
 import styles from "../app.module.css";
 import { Text, InlineStack, Button } from "@shopify/polaris";
@@ -17,6 +18,7 @@ const faqs = [
 ];
 
 export default function Index() {
+  const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState(null);
   const notify = (message) => window.shopify?.toast?.show(message);
 
@@ -60,7 +62,7 @@ export default function Index() {
           </Text>
           <p>Explore the instructional videos to learn how to set up the app yourself.</p>
           <Button
-            url="/app/videos"
+            onClick={() => navigate("/app/videos")}
             variant="primary"
           >
             Watch Videos
