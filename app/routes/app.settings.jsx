@@ -17,7 +17,7 @@ import {
   FormLayout
 } from "@shopify/polaris";
 import { ClipboardIcon, PlusIcon, ViewIcon, HideIcon, DeleteIcon } from "@shopify/polaris-icons";
-import styles from "./_index/styles.module.css";
+import styles from "../app.module.css";
 
 const API_SECRET = "shipmagic_store_secret_7f3c91a2";
 
@@ -31,6 +31,12 @@ const formatNow = () => {
     minute: "2-digit",
     hour12: false,
   }).replace(/,/g, "");
+};
+
+const blendTypeLabels = {
+  add: "Add",
+  lowest: "Lowest",
+  highest: "Highest",
 };
 
 function Toggle({ checked, onChange, label }) {
@@ -78,6 +84,18 @@ export default function SettingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalBlendType, setModalBlendType] = useState("add");
 
+  // --- ADD BLENDING RULE FORM FIELDS (previously unwired) ---
+  const [blendTags, setBlendTags] = useState("");
+  const [blendMax, setBlendMax] = useState("");
+  const [blendMin, setBlendMin] = useState("");
+  const [rateName, setRateName] = useState("");
+  const [rateDescription, setRateDescription] = useState("");
+  const [deliveryMin, setDeliveryMin] = useState("");
+  const [deliveryMax, setDeliveryMax] = useState("");
+
+  // --- SAVED ADVANCED BLENDING RULES ---
+  const [advancedRules, setAdvancedRules] = useState([]);
+
   // --- DYNAMIC ROWS STATES (Basic Blending) ---
   const [limitRatesToggle, setLimitRatesToggle] = useState(false);
   const [rateRows, setRateRows] = useState([{ name: "", max: "", min: "" }]);
@@ -99,7 +117,49 @@ export default function SettingsPage() {
     }, 10000);
   };
 
-  const toggleModal = useCallback(() => setIsModalOpen((active) => !active), []);
+  const resetBlendForm = () => {
+    setModalBlendType("add");
+    setBlendTags("");
+    setBlendMax("");
+    setBlendMin("");
+    setRateName("");
+    setRateDescription("");
+    setDeliveryMin("");
+    setDeliveryMax("");
+  };
+
+  const openBlendModal = useCallback(() => {
+    resetBlendForm();
+    setIsModalOpen(true);
+  }, []);
+
+  const closeBlendModal = useCallback(() => setIsModalOpen(false), []);
+
+  const canSaveBlendingRule = Boolean(
+    blendTags.trim() && (modalBlendType !== "add" || rateName.trim()),
+  );
+
+  const saveBlendingRule = () => {
+    if (!canSaveBlendingRule) return;
+    setAdvancedRules((rules) => [
+      ...rules,
+      {
+        id: Date.now(),
+        blendType: modalBlendType,
+        tags: blendTags,
+        max: blendMax,
+        min: blendMin,
+        rateName,
+        description: rateDescription,
+        deliveryMin,
+        deliveryMax,
+      },
+    ]);
+    closeBlendModal();
+  };
+
+  const removeAdvancedRule = (id) =>
+    setAdvancedRules((rules) => rules.filter((rule) => rule.id !== id));
 
   const copySecret = async () => {
     await navigator.clipboard?.writeText(API_SECRET);
@@ -241,8 +301,37 @@ export default function SettingsPage() {
                     <Text as="p" variant="headingSm">Advanced</Text>
                     <Text as="p" tone="subdued">Choose how you want to blend rates with different names (based on tags).</Text>
                   </BlockStack>
-                  <Banner tone="info">No advanced blending rules created yet.</Banner>
-                  <Box><Button icon={PlusIcon} onClick={toggleModal}>Add</Button></Box>
+
+                  {advancedRules.length === 0 ? (
+                    <Banner tone="info">No advanced blending rules created yet.</Banner>
+                  ) : (
+                    <BlockStack gap="200">
+                      {advancedRules.map((rule) => (
+                        <Card key={rule.id} background="bg-surface-secondary">
+                          <InlineStack align="space-between" blockAlign="center">
+                            <BlockStack gap="050">
+                              <Text as="p" variant="headingSm">
+                                {rule.rateName || rule.tags}
+                              </Text>
+                              <Text as="p" tone="subdued">
+                                {blendTypeLabels[rule.blendType]} · Tags: {rule.tags}
+                                {rule.max ? ` · Max: ${rule.max}` : ""}
+                                {rule.min ? ` · Min: ${rule.min}` : ""}
+                              </Text>
+                            </BlockStack>
+                            <Button
+                              icon={DeleteIcon}
+                              tone="critical"
+                              accessibilityLabel={`Delete blending rule ${rule.rateName || rule.tags}`}
+                              onClick={() => removeAdvancedRule(rule.id)}
+                            />
+                          </InlineStack>
+                        </Card>
+                      ))}
+                    </BlockStack>
+                  )}
+
+                  <Box><Button icon={PlusIcon} onClick={openBlendModal}>Add</Button></Box>
                 </BlockStack>
               </Box>
             </Card>
@@ -251,10 +340,10 @@ export default function SettingsPage() {
           {/* ADVANCED MODAL */}
           <Modal
             open={isModalOpen}
-            onClose={toggleModal}
+            onClose={closeBlendModal}
             title="Add blending rule"
-            primaryAction={{ content: 'Done', onAction: toggleModal }}
-            secondaryActions={[{ content: 'Cancel', onAction: toggleModal }]}
+            primaryAction={{ content: 'Done', onAction: saveBlendingRule, disabled: !canSaveBlendingRule }}
+            secondaryActions={[{ content: 'Cancel', onAction: closeBlendModal }]}
           >
             <Modal.Section>
               <BlockStack gap="400">
@@ -272,9 +361,26 @@ export default function SettingsPage() {
                       value={modalBlendType}
                       onChange={setModalBlendType}
                     />
-                    <TextField label="Tags" requiredIndicator helpText="Comma separated values are allowed." autoComplete="off" />
-                    <TextField label="Maximum" autoComplete="off" />
-                    <TextField label="Minimum" autoComplete="off" />
+                    <TextField
+                      label="Tags"
+                      requiredIndicator
+                      helpText="Comma separated values are allowed."
+                      value={blendTags}
+                      onChange={setBlendTags}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Maximum"
+                      value={blendMax}
+                      onChange={setBlendMax}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Minimum"
+                      value={blendMin}
+                      onChange={setBlendMin}
+                      autoComplete="off"
+                    />
                   </FormLayout>
                 </BlockStack>
                 {modalBlendType === 'add' && (
@@ -284,11 +390,39 @@ export default function SettingsPage() {
                       <Text as="h3" variant="headingMd">Details</Text>
                       <Text tone="subdued">Enter details which customers should see when rates with different names are added.</Text>
                       <FormLayout>
-                        <TextField label="Rate name" requiredIndicator autoComplete="off" />
-                        <TextField label="Description" autoComplete="off" />
+                        <TextField
+                          label="Rate name"
+                          requiredIndicator
+                          value={rateName}
+                          onChange={setRateName}
+                          autoComplete="off"
+                        />
+                        <TextField
+                          label="Description"
+                          value={rateDescription}
+                          onChange={setRateDescription}
+                          autoComplete="off"
+                        />
                         <InlineStack gap="400" wrap={false}>
-                          <div style={{ flex: 1 }}><TextField label="Delivery time" suffix="days" autoComplete="off" /></div>
-                          <div style={{ flex: 1, paddingTop: '28px' }}><TextField label="Delivery time max" labelHidden suffix="days" autoComplete="off" /></div>
+                          <div style={{ flex: 1 }}>
+                            <TextField
+                              label="Delivery time"
+                              suffix="days"
+                              value={deliveryMin}
+                              onChange={setDeliveryMin}
+                              autoComplete="off"
+                            />
+                          </div>
+                          <div style={{ flex: 1, paddingTop: '28px' }}>
+                            <TextField
+                              label="Delivery time max"
+                              labelHidden
+                              suffix="days"
+                              value={deliveryMax}
+                              onChange={setDeliveryMax}
+                              autoComplete="off"
+                            />
+                          </div>
                         </InlineStack>
                       </FormLayout>
                     </BlockStack>

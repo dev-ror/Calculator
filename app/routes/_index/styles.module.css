@@ -7,23 +7,19 @@
   text-align: center;
   padding: 1rem;
 }
-
 .heading,
 .text {
   padding: 0;
   margin: 0;
 }
-
 .text {
   font-size: 1.2rem;
   padding-bottom: 2rem;
 }
-
 .content {
   display: grid;
   gap: 2rem;
 }
-
 .form {
   display: flex;
   align-items: center;
@@ -31,7 +27,6 @@
   margin: 0 auto;
   gap: 1rem;
 }
-
 .label {
   display: grid;
   gap: 0.2rem;
@@ -39,15 +34,12 @@
   text-align: left;
   font-size: 1rem;
 }
-
 .input {
   padding: 0.4rem;
 }
-
 .button {
   padding: 0.4rem;
 }
-
 .list {
   list-style: none;
   padding: 0;
@@ -56,85 +48,15 @@
   display: flex;
   gap: 2rem;
 }
-
 .list>li {
   max-width: 20rem;
   text-align: left;
 }
-
 @media only screen and (max-width: 50rem) {
   .list {
     display: block;
   }
-
   .list>li {
     padding-bottom: 1rem;
-  }
-}
-
-.settingsToggle {
-  display: inline-flex;
-  flex: 0 0 auto;
-  cursor: pointer;
-}
-
-.settingsToggle input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.settingsToggle span {
-  width: 46px;
-  height: 24px;
-  padding: 2px;
-  border-radius: 999px;
-  background: #c9cccf;
-  transition: background .18s ease;
-  box-sizing: border-box;
-}
-
-.settingsToggle span::after {
-  content: "";
-  display: block;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .22);
-  transition: transform .18s ease;
-}
-
-.settingsToggle input:checked+span {
-  background: #303030;
-}
-
-.settingsToggle input:checked+span::after {
-  transform: translateX(22px);
-}
-
-.settingsToggle input:focus-visible+span {
-  outline: 2px solid #005bd3;
-  outline-offset: 2px;
-}
-
-.secretRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 8px;
-  align-items: center;
-}
-
-a {
-  color: #005bd3;
-}
-
-@media (max-width: 640px) {
-  .secretRow {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .secretRow> :last-child {
-    grid-column: 2;
   }
 }

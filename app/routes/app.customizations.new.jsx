@@ -228,7 +228,7 @@ export default function NewCustomization() {
                     <Button variant="plain" onClick={() => setParameterSet(nextParameterSet)}>
                       <Text as="span">Switch to parameter set {nextParameterSet}</Text>
                     </Button>
-                    <Tooltip active content="Three parameter sets are available for creating conditions. A rule may use parameters from only one set.">
+                    <Tooltip dismissOnMouseOut content="Three parameter sets are available for creating conditions. A rule may use parameters from only one set.">
                       <Icon source={InfoIcon} />
                     </Tooltip>
                   </InlineStack>
@@ -500,7 +500,7 @@ export default function NewCustomization() {
                 </Text>
                 <InlineStack gap="100" blockAlign="center">
                   <Text as="p">{actionLabel}</Text>
-                  <Tooltip active content="You can enter part of the shipping method name to match multiple options. For example, to match 'Express Shipping' and 'Express Delivery' both, enter 'Express'.">
+                  <Tooltip dismissOnMouseOut content="You can enter part of the shipping method name to match multiple options. For example, to match 'Express Shipping' and 'Express Delivery' both, enter 'Express'.">
                     <Icon source={InfoIcon} />
                   </Tooltip>
                 </InlineStack>
