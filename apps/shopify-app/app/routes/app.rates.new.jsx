@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -18,8 +18,19 @@ import {
   Button,
   Banner,
   Modal,
+  ActionList,
+  InlineGrid,
+  Popover,
+  Tooltip,
+  Icon,
+  Badge,
 } from "@shopify/polaris";
-import { PlusIcon, DeleteIcon } from "@shopify/polaris-icons";
+import {
+  PlusIcon,
+  DeleteIcon,
+  MenuHorizontalIcon,
+  InfoIcon,
+} from "@shopify/polaris-icons";
 import {
   blankCondition,
   blankRate,
@@ -34,6 +45,49 @@ import {
   uspsDomesticServices,
   uspsInternationalServices,
 } from "../constants/shippingRates";
+import { authenticate } from "../shopify.server";
+import { createRate, loadRateData } from "../backend.server";
+
+export const loader = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  const id = new URL(request.url).searchParams.get("id");
+
+  if (!id) return { rate: null };
+
+  try {
+    const { rates } = await loadRateData(session.shop);
+    const rate = rates.find((item) => item.id === id);
+
+    if (!rate) {
+      throw new Response("Rate rule not found", { status: 404 });
+    }
+
+    return { rate };
+  } catch (error) {
+    if (error instanceof Response) throw error;
+    throw new Response("Unable to load rate rule", { status: 500 });
+  }
+};
+
+export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+
+  try {
+    const submission = await request.json();
+    const rate = await createRate(session.shop, submission);
+
+    return Response.json({ ok: true, rate }, { status: 201 });
+  } catch (error) {
+    if (error instanceof TypeError || error instanceof RangeError) {
+      return Response.json({ ok: false, error: error.message }, { status: 400 });
+    }
+
+    return Response.json(
+      { ok: false, error: "Unable to submit rate rule." },
+      { status: 500 },
+    );
+  }
+};
 
 // Grouped options for the "Condition field" Select (mirrors the original <optgroup> markup)
 const conditionFieldOptions = [
@@ -178,24 +232,118 @@ const rateTypeOptions = [
   "Range + Range",
 ];
 
+function editableRateCondition(condition) {
+  return {
+    ...blankCondition(),
+    field: condition.field,
+    subfield: condition.subfield ?? "Product Tag",
+    key: condition.key ?? "",
+    operator: condition.operator,
+    value: condition.value ?? "",
+    quantityCheck: condition.quantityCheck ?? "atLeastOne",
+    quantityValue: condition.quantityValue ?? "",
+  };
+}
+
+function browserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+function localDateValue(date = new Date()) {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 10);
+}
+
+function formatSchedule(schedule) {
+  const scheduledAt = new Date(schedule.scheduledAt);
+
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: schedule.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(scheduledAt);
+    const value = (type) => parts.find((part) => part.type === type)?.value;
+    return `${value("year")}-${value("month")}-${value("day")} ${value("hour")}:${value("minute")}`;
+  } catch {
+    return scheduledAt.toISOString().slice(0, 16).replace("T", " ");
+  }
+}
+
 export default function NewShippingRateRule() {
   const navigate = useNavigate();
+  const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const [name, setName] = useState("");
-  const [priority, setPriority] = useState("");
-  const [status, setStatus] = useState("Active");
-  const [match, setMatch] = useState("all");
-  const [exclusivity, setExclusivity] = useState("inclusive");
-  const [conditions, setConditions] = useState([blankCondition()]);
-  const [zoneRates, setZoneRates] = useState({});
+  const { rate } = useLoaderData();
+  const [name, setName] = useState(rate?.name ?? "");
+  const [priority, setPriority] = useState(rate ? String(rate.priority) : "");
+  const [status, setStatus] = useState(
+    rate ? `${rate.status.charAt(0)}${rate.status.slice(1).toLowerCase()}` : "Active",
+  );
+  const [match, setMatch] = useState(rate?.conditionMatch.toLowerCase() ?? "all");
+  const [exclusivity, setExclusivity] = useState(rate?.exclusivity.toLowerCase() ?? "inclusive");
+  const [conditions, setConditions] = useState(
+    rate?.conditions.length
+      ? rate.conditions.map(editableRateCondition)
+      : [blankCondition()],
+  );
+  const [zoneRates, setZoneRates] = useState(() =>
+    (rate?.rates ?? []).reduce(
+      (zones, definition) => {
+        const zone = zones[definition.zoneKey] ?? [];
+        zones[definition.zoneKey] = [
+          ...zone,
+          {
+          ...blankRate(),
+          name: definition.name,
+          calculation: definition.calculation,
+          price: definition.price === null ? "" : String(definition.price),
+          description: definition.description ?? "",
+          minimumDays:
+            definition.minimumDays === null ? "" : String(definition.minimumDays),
+          maximumDays:
+            definition.maximumDays === null ? "" : String(definition.maximumDays),
+          currency:
+            Object.keys(currencyCodes).find(
+              (label) => currencyCodes[label] === definition.currencyCode,
+            ) ?? "Default Store Currency",
+          status: definition.status,
+          },
+        ];
+        return zones;
+      },
+      { Domestic: [], International: [] },
+    ),
+  );
   const [activeZone, setActiveZone] = useState(null);
+  const [activeRateIndex, setActiveRateIndex] = useState(null);
+  const [activeRateMenu, setActiveRateMenu] = useState(null);
   const [rateDraft, setRateDraft] = useState(blankRate());
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [schedules, setSchedules] = useState(rate?.schedules ?? []);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleAction, setScheduleAction] = useState("ACTIVATE");
+  const [scheduleDate, setScheduleDate] = useState(localDateValue);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduleTimezone, setScheduleTimezone] = useState("UTC");
 
-  const openRateModal = (zone) => {
+  const openRateModal = (zone, rateIndex = null) => {
     setActiveZone(zone);
-    setRateDraft(zoneRates[zone] || blankRate());
+    setActiveRateIndex(rateIndex);
+    setRateDraft(
+      rateIndex === null ? blankRate() : zoneRates[zone][rateIndex],
+    );
+    setActiveRateMenu(null);
   };
-  const closeRateModal = () => setActiveZone(null);
+  const closeRateModal = () => {
+    setActiveZone(null);
+    setActiveRateIndex(null);
+  };
   const updateRate = (key, value) =>
     setRateDraft({ ...rateDraft, [key]: value });
   const updatePackage = (index, key, value) =>
@@ -272,8 +420,23 @@ export default function NewShippingRateRule() {
   );
   const saveRate = () => {
     if (!canSaveRate) return;
-    setZoneRates({ ...zoneRates, [activeZone]: rateDraft });
+    const rates = [...(zoneRates[activeZone] ?? [])];
+
+    if (activeRateIndex === null) {
+      rates.push(rateDraft);
+    } else {
+      rates[activeRateIndex] = rateDraft;
+    }
+
+    setZoneRates({ ...zoneRates, [activeZone]: rates });
     closeRateModal();
+  };
+  const removeZoneRate = (zone, rateIndex) => {
+    setZoneRates({
+      ...zoneRates,
+      [zone]: zoneRates[zone].filter((_, index) => index !== rateIndex),
+    });
+    setActiveRateMenu(null);
   };
 
   const renderPackagingFields = (parcel = false) => (
@@ -389,21 +552,98 @@ export default function NewShippingRateRule() {
   const canSave = name.trim() && priority.trim();
   const save = () => {
     if (!canSave) return;
-    shopify.toast.show("Shipping rate rule saved");
-    navigate("/app/rates");
+    const submission = {
+      name,
+      priority,
+      status,
+      conditionMatch: match,
+      exclusivity,
+      conditions,
+      zoneRates,
+      schedules,
+    };
+    fetcher.submit(
+      rate ? { intent: "update", id: rate.id, data: submission } : submission,
+      {
+        method: "post",
+        encType: "application/json",
+        ...(rate ? { action: "/app/rates?index" } : {}),
+      },
+    );
   };
+
+  const openScheduleModal = () => {
+    setScheduleAction("ACTIVATE");
+    setScheduleDate(localDateValue());
+    setScheduleTime("09:00");
+    setScheduleTimezone(browserTimezone());
+    setScheduleModalOpen(true);
+  };
+
+  const addSchedule = () => {
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}:00`);
+
+    if (!scheduleDate || !scheduleTime || Number.isNaN(scheduledAt.getTime())) {
+      shopify.toast.show("Select a valid schedule date and time", { isError: true });
+      return;
+    }
+
+    setSchedules([
+      ...schedules,
+      {
+        action: scheduleAction,
+        scheduledAt: scheduledAt.toISOString(),
+        timezone: scheduleTimezone,
+      },
+    ]);
+    setScheduleModalOpen(false);
+  };
+
+  const deleteRule = () => {
+    if (!rate) return;
+    setDeleting(true);
+    fetcher.submit(
+      { intent: "delete", id: rate.id },
+      {
+        method: "post",
+        encType: "application/json",
+        action: "/app/rates?index",
+      },
+    );
+  };
+
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    if (fetcher.data.ok) {
+      shopify.toast.show(
+        deleting ? "Shipping rate rule deleted" : "Shipping rate rule saved",
+      );
+      navigate("/app/rates");
+      return;
+    }
+
+    shopify.toast.show(
+      fetcher.data.error ||
+        (deleting ? "Unable to delete rate rule" : "Unable to submit rate rule"),
+      {
+      isError: true,
+      },
+    );
+    setDeleting(false);
+  }, [deleting, fetcher.data, navigate, shopify]);
 
   return (
     <Page
-      title="Add shipping rate rule"
+      title={rate ? "Edit shipping rate rule" : "Add shipping rate rule"}
       backAction={{ content: "Back", onAction: () => navigate(-1) }}
-      secondaryActions={[
+      secondaryActions={rate ? [
         {
-          content: "Clone",
-          onAction: () =>
-            setName(name ? `${name} copy` : "Cloned shipping rule"),
+          content: "Delete",
+          destructive: true,
+          onAction: () => setDeleteConfirmationOpen(true),
         },
-      ]}
+      ] : []}
       primaryAction={{ content: "Save", onAction: save, disabled: !canSave }}
     >
       <Layout>
@@ -756,36 +996,72 @@ export default function NewShippingRateRule() {
                         </Text>
                         <Button
                           variant="plain"
-                          onClick={() =>
-                            zoneRates[zone]
-                              ? setZoneRates({ ...zoneRates, [zone]: undefined })
-                              : openRateModal(zone)
-                          }
+                          onClick={() => openRateModal(zone)}
                         >
-                          {zoneRates[zone] === undefined
-                            ? "Add rate"
-                            : "Remove rate"}
+                          Add rate
                         </Button>
                       </InlineStack>
-                      {zoneRates[zone] === undefined ? (
+                      {(zoneRates[zone] ?? []).length === 0 ? (
                         <Banner tone="warning">
                           No rates. Customers in this zone won&apos;t see
                           shipping rates from ShipMagic app.
                         </Banner>
                       ) : (
-                        <InlineStack align="space-between" blockAlign="center">
-                          <BlockStack gap="0">
-                            <Text as="p" fontWeight="semibold">
-                              {zoneRates[zone].name}
-                            </Text>
-                            <Text as="p" tone="subdued">
-                              {zoneRates[zone].calculation}
-                            </Text>
-                          </BlockStack>
-                          <Button onClick={() => openRateModal(zone)}>
-                            ${zoneRates[zone].price}
-                          </Button>
-                        </InlineStack>
+                        <BlockStack gap="0">
+                          <Box paddingBlock="200">
+                            <InlineGrid columns="2fr 2fr 1fr auto" gap="300" alignItems="center">
+                              <Text as="span" fontWeight="semibold">Rate name</Text>
+                              <Text as="span" fontWeight="semibold">Condition</Text>
+                              <Text as="span" fontWeight="semibold">Price</Text>
+                              <Box minWidth="32px" />
+                            </InlineGrid>
+                          </Box>
+                          {(zoneRates[zone] ?? []).map((shippingRate, rateIndex) => {
+                            const menuKey = `${zone}-${rateIndex}`;
+
+                            return (
+                              <Box key={menuKey} paddingBlock="300">
+                                <InlineGrid columns="2fr 2fr 1fr auto" gap="300" alignItems="center">
+                                  <Text as="span">{shippingRate.name}</Text>
+                                  <Text as="span">{shippingRate.calculation || "-"}</Text>
+                                  <Text as="span">
+                                    {shippingRate.price === "" ? "-" : `$${shippingRate.price}`}
+                                  </Text>
+                                  <Popover
+                                    active={activeRateMenu === menuKey}
+                                    activator={
+                                      <Button
+                                        icon={MenuHorizontalIcon}
+                                        variant="plain"
+                                        accessibilityLabel={`Actions for ${shippingRate.name}`}
+                                        onClick={() =>
+                                          setActiveRateMenu(
+                                            activeRateMenu === menuKey ? null : menuKey,
+                                          )
+                                        }
+                                      />
+                                    }
+                                    onClose={() => setActiveRateMenu(null)}
+                                  >
+                                    <ActionList
+                                      items={[
+                                        {
+                                          content: "Edit",
+                                          onAction: () => openRateModal(zone, rateIndex),
+                                        },
+                                        {
+                                          content: "Delete",
+                                          destructive: true,
+                                          onAction: () => removeZoneRate(zone, rateIndex),
+                                        },
+                                      ]}
+                                    />
+                                  </Popover>
+                                </InlineGrid>
+                              </Box>
+                            );
+                          })}
+                        </BlockStack>
                       )}
                     </BlockStack>
                   </Card>
@@ -834,6 +1110,56 @@ export default function NewShippingRateRule() {
                 </Text>
               </BlockStack>
             </Card>
+            <Card>
+              <BlockStack gap="300">
+                <InlineStack align="space-between" blockAlign="center">
+                  <InlineStack gap="100" blockAlign="center">
+                    <Text as="h2" variant="headingMd">
+                      Schedule
+                    </Text>
+                    <Tooltip content="Activate or deactivate this shipping rate rule automatically at a scheduled time.">
+                      <Icon source={InfoIcon} />
+                    </Tooltip>
+                  </InlineStack>
+                  <Button icon={PlusIcon} onClick={openScheduleModal}>
+                    Add schedule
+                  </Button>
+                </InlineStack>
+
+                {schedules.length > 0 ? (
+                  schedules.map((schedule, index) => (
+                    <InlineStack
+                      key={`${schedule.scheduledAt}-${index}`}
+                      align="space-between"
+                      blockAlign="center"
+                      wrap={false}
+                    >
+                      <InlineStack gap="200" blockAlign="center" wrap={false}>
+                        <Badge tone="info">
+                          {schedule.action === "ACTIVATE" ? "Activate" : "Deactivate"}
+                        </Badge>
+                        <Text as="span">{formatSchedule(schedule)}</Text>
+                      </InlineStack>
+                      <Button
+                        icon={DeleteIcon}
+                        tone="critical"
+                        variant="plain"
+                        accessibilityLabel={`Delete schedule ${index + 1}`}
+                        onClick={() =>
+                          setSchedules(
+                            schedules.filter((_, scheduleIndex) => scheduleIndex !== index),
+                          )
+                        }
+                      />
+                    </InlineStack>
+                  ))
+                ) : (
+                  <Text as="p" tone="subdued">
+                    No schedules added.
+                  </Text>
+                )}
+              </BlockStack>
+            </Card>
           </BlockStack>
         </Layout.Section>
       </Layout>
@@ -846,9 +1172,78 @@ export default function NewShippingRateRule() {
       </Box>
 
       <Modal
+        open={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        title="Add schedule"
+        primaryAction={{ content: "Save", onAction: addSchedule }}
+        secondaryActions={[
+          { content: "Cancel", onAction: () => setScheduleModalOpen(false) },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="p">Action</Text>
+              <RadioButton
+                label="Activate"
+                name="schedule-action"
+                checked={scheduleAction === "ACTIVATE"}
+                onChange={() => setScheduleAction("ACTIVATE")}
+              />
+              <RadioButton
+                label="Deactivate"
+                name="schedule-action"
+                checked={scheduleAction === "DEACTIVATE"}
+                onChange={() => setScheduleAction("DEACTIVATE")}
+              />
+            </BlockStack>
+            <TextField
+              label="Date"
+              type="date"
+              value={scheduleDate}
+              onChange={setScheduleDate}
+              autoComplete="off"
+            />
+            <TextField
+              label="Time"
+              type="time"
+              value={scheduleTime}
+              onChange={setScheduleTime}
+              autoComplete="off"
+              helpText={`Timezone: ${scheduleTimezone}`}
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
+      <Modal
+        open={deleteConfirmationOpen}
+        onClose={() => setDeleteConfirmationOpen(false)}
+        title="Delete shipping rate rule?"
+        primaryAction={{
+          content: "Delete",
+          destructive: true,
+          loading: deleting && fetcher.state !== "idle",
+          onAction: deleteRule,
+        }}
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: () => setDeleteConfirmationOpen(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <Text as="p">
+            This will permanently delete {rate?.name || "this shipping rate rule"}.
+          </Text>
+        </Modal.Section>
+      </Modal>
+
+      <Modal
         open={Boolean(activeZone)}
         onClose={closeRateModal}
-        title="Add rate"
+        title={activeRateIndex === null ? "Add rate" : "Edit rate"}
         primaryAction={{
           content: "Done",
           onAction: saveRate,

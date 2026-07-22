@@ -4,13 +4,14 @@ node_modules
 .DS_Store
 
 /.cache
-/build
-/app/build
-/public/build/
-/public/_dev
-/app/public/build
-/prisma/dev.sqlite
-/prisma/dev.sqlite-journal
+/.turbo
+/.vite
+/apps/shopify-app/.turbo
+/apps/shopify-app/build
+/apps/shopify-app/public/build/
+/apps/shopify-app/public/_dev
+/apps/shopify-app/prisma/dev.sqlite
+/apps/shopify-app/prisma/dev.sqlite-journal
 database.sqlite
 
 .env
@@ -20,7 +21,7 @@ database.sqlite
 
 
 
-/extensions/*/dist
+/apps/shopify-app/extensions/*/dist
 
 # Ignore shopify files created during app dev
 .shopify/*

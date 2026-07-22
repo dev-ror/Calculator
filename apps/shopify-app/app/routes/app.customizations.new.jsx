@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   Page,
@@ -16,6 +16,8 @@ import {
   RadioButton,
   Button,
   Icon,
+  Modal,
+  Badge,
 } from "@shopify/polaris";
 import { PlusIcon, DeleteIcon, InfoIcon } from "@shopify/polaris-icons";
 import {
@@ -29,6 +31,49 @@ import {
   productMatchOptions,
   quantityMatches,
 } from "../constants/shippingCustomizations";
+import { authenticate } from "../shopify.server";
+import { createCustomization, loadCustomizations } from "../backend.server";
+
+export const loader = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  const id = new URL(request.url).searchParams.get("id");
+
+  if (!id) return { customization: null };
+
+  try {
+    const customizations = await loadCustomizations(session.shop);
+    const customization = customizations.find((item) => item.id === id);
+
+    if (!customization) {
+      throw new Response("Customization not found", { status: 404 });
+    }
+
+    return { customization };
+  } catch (error) {
+    if (error instanceof Response) throw error;
+    throw new Response("Unable to load customization", { status: 500 });
+  }
+};
+
+export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+
+  try {
+    const submission = await request.json();
+    const customization = await createCustomization(session.shop, submission);
+
+    return Response.json({ ok: true, customization }, { status: 201 });
+  } catch (error) {
+    if (error instanceof TypeError || error instanceof RangeError) {
+      return Response.json({ ok: false, error: error.message }, { status: 400 });
+    }
+
+    return Response.json(
+      { ok: false, error: "Unable to submit customization." },
+      { status: 500 },
+    );
+  }
+};
 
 // Exactly mirrors the original <option> markup for the Type select
 const typeOptions = [
@@ -141,21 +186,92 @@ const valuelessConditionFields = new Set([
   "Always",
 ]);
 
+function editableCondition(condition, parameterSet) {
+  const fallback =
+    parameterSet === 2 ? emptyParameter2Condition() : emptyCustomizationCondition();
+
+  return {
+    ...fallback,
+    field: condition.field,
+    operator: condition.operator ?? fallback.operator,
+    key: condition.key ?? "",
+    value: condition.value ?? "",
+    productMatch: condition.productMatch ?? fallback.productMatch,
+    matchValue: condition.matchValue ?? "",
+  };
+}
+
+function browserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+function localDateValue(date = new Date()) {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 10);
+}
+
+function formatSchedule(schedule) {
+  const scheduledAt = new Date(schedule.scheduledAt);
+
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: schedule.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(scheduledAt);
+    const value = (type) => parts.find((part) => part.type === type)?.value;
+    return `${value("year")}-${value("month")}-${value("day")} ${value("hour")}:${value("minute")}`;
+  } catch {
+    return scheduledAt.toISOString().slice(0, 16).replace("T", " ");
+  }
+}
+
 export default function NewCustomization() {
   const navigate = useNavigate();
+  const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const [type, setType] = useState("Hide shipping rates");
-  const [name, setName] = useState("");
-  const [status, setStatus] = useState("Active");
-  const [match, setMatch] = useState("all");
-  const [parameterSet, setParameterSet] = useState(1);
-  const [shipmentScope, setShipmentScope] = useState("all");
-  const [conditionsBySet, setConditionsBySet] = useState({
-    1: [emptyCustomizationCondition()],
-    2: [emptyParameter2Condition()],
-    3: [emptyCustomizationCondition()],
-  });
-  const [methods, setMethods] = useState([""]);
+  const { customization } = useLoaderData();
+  const [type, setType] = useState(customization?.type ?? "hide");
+  const [name, setName] = useState(customization?.name ?? "");
+  const [status, setStatus] = useState(
+    customization
+      ? `${customization.status.charAt(0)}${customization.status.slice(1).toLowerCase()}`
+      : "Active",
+  );
+  const [match, setMatch] = useState(customization?.conditionMatch.toLowerCase() ?? "all");
+  const [parameterSet, setParameterSet] = useState(customization?.parameterSet ?? 1);
+  const [shipmentScope, setShipmentScope] = useState(
+    customization?.shipmentScope.toLowerCase() ?? "all",
+  );
+  const [conditionsBySet, setConditionsBySet] = useState(() => ({
+    1:
+      customization?.parameterSet === 1
+        ? customization.conditions.map((condition) => editableCondition(condition, 1))
+        : [emptyCustomizationCondition()],
+    2:
+      customization?.parameterSet === 2
+        ? customization.conditions.map((condition) => editableCondition(condition, 2))
+        : [emptyParameter2Condition()],
+    3:
+      customization?.parameterSet === 3
+        ? customization.conditions.map((condition) => editableCondition(condition, 3))
+        : [emptyCustomizationCondition()],
+  }));
+  const [methods, setMethods] = useState(
+    customization ? customization.methods.map((method) => method.value) : [""],
+  );
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [schedules, setSchedules] = useState(customization?.schedules ?? []);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleAction, setScheduleAction] = useState("ACTIVATE");
+  const [scheduleDate, setScheduleDate] = useState(localDateValue);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduleTimezone, setScheduleTimezone] = useState("UTC");
 
   const conditions = conditionsBySet[parameterSet];
   const setConditions = (nextConditions) =>
@@ -179,9 +295,60 @@ export default function NewCustomization() {
   const canSave = name.trim() && methods.some((method) => method.trim());
   const save = () => {
     if (!canSave) return;
-    shopify.toast.show("Shipping customization saved");
-    navigate("/app/customizations");
+    const submission = {
+      type,
+      name,
+      status,
+      conditionMatch: match,
+      parameterSet,
+      shipmentScope,
+      conditionsBySet,
+      methods,
+      schedules,
+    };
+    fetcher.submit(
+      customization
+        ? { intent: "update", id: customization.id, data: submission }
+        : submission,
+      {
+        method: "post",
+        encType: "application/json",
+        ...(customization ? { action: "/app/customizations?index" } : {}),
+      },
+    );
   };
+
+  const deleteCustomizationRule = () => {
+    if (!customization) return;
+    setDeleting(true);
+    fetcher.submit(
+      { intent: "delete", id: customization.id },
+      {
+        method: "post",
+        encType: "application/json",
+        action: "/app/customizations?index",
+      },
+    );
+  };
+
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    if (fetcher.data.ok) {
+      shopify.toast.show(
+        deleting ? "Shipping customization deleted" : "Shipping customization saved",
+      );
+      navigate("/app/customizations");
+      return;
+    }
+
+    shopify.toast.show(
+      fetcher.data.error ||
+        (deleting ? "Unable to delete customization" : "Unable to submit customization"),
+      { isError: true },
+    );
+    setDeleting(false);
+  }, [deleting, fetcher.data, navigate, shopify]);
 
   const updateMethod = (index, value) =>
     setMethods(methods.map((method, itemIndex) => (itemIndex === index ? value : method)));
@@ -189,12 +356,46 @@ export default function NewCustomization() {
     setMethods(methods.filter((_, itemIndex) => itemIndex !== index));
   const addMethod = () => setMethods([...methods, ""]);
 
+  const openScheduleModal = () => {
+    setScheduleAction("ACTIVATE");
+    setScheduleDate(localDateValue());
+    setScheduleTime("09:00");
+    setScheduleTimezone(browserTimezone());
+    setScheduleModalOpen(true);
+  };
+
+  const addSchedule = () => {
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}:00`);
+
+    if (!scheduleDate || !scheduleTime || Number.isNaN(scheduledAt.getTime())) {
+      shopify.toast.show("Select a valid schedule date and time", { isError: true });
+      return;
+    }
+
+    setSchedules([
+      ...schedules,
+      {
+        action: scheduleAction,
+        scheduledAt: scheduledAt.toISOString(),
+        timezone: scheduleTimezone,
+      },
+    ]);
+    setScheduleModalOpen(false);
+  };
+
   const actionLabel = getCustomizationActionLabel(type);
 
   return (
     <Page
-      title="Create customization rule"
+      title={customization ? "Edit customization rule" : "Create customization rule"}
       backAction={{ content: "Back", onAction: () => navigate(-1) }}
+      secondaryActions={customization ? [
+        {
+          content: "Delete",
+          destructive: true,
+          onAction: () => setDeleteConfirmationOpen(true),
+        },
+      ] : []}
       primaryAction={{ content: "Save", onAction: save, disabled: !canSave }}
     >
       <Layout>
@@ -530,6 +731,7 @@ export default function NewCustomization() {
                 </Box>
               </BlockStack>
             </Card>
+
           </BlockStack>
         </Layout.Section>
 
@@ -571,6 +773,57 @@ export default function NewCustomization() {
                 />
               </BlockStack>
             </Card>
+
+            <Card>
+              <BlockStack gap="300">
+                <InlineStack align="space-between" blockAlign="center">
+                  <InlineStack gap="100" blockAlign="center">
+                    <Text as="h2" variant="headingMd">
+                      Schedule
+                    </Text>
+                    <Tooltip content="Activate or deactivate this customization automatically at a scheduled time.">
+                      <Icon source={InfoIcon} />
+                    </Tooltip>
+                  </InlineStack>
+                  <Button icon={PlusIcon} onClick={openScheduleModal}>
+                    Add schedule
+                  </Button>
+                </InlineStack>
+
+                {schedules.length > 0 ? (
+                  schedules.map((schedule, index) => (
+                    <InlineStack
+                      key={`${schedule.scheduledAt}-${index}`}
+                      align="space-between"
+                      blockAlign="center"
+                      wrap={false}
+                    >
+                      <InlineStack gap="200" blockAlign="center" wrap={false}>
+                        <Badge tone="info">
+                          {schedule.action === "ACTIVATE" ? "Activate" : "Deactivate"}
+                        </Badge>
+                        <Text as="span">{formatSchedule(schedule)}</Text>
+                      </InlineStack>
+                      <Button
+                        icon={DeleteIcon}
+                        tone="critical"
+                        variant="plain"
+                        accessibilityLabel={`Delete schedule ${index + 1}`}
+                        onClick={() =>
+                          setSchedules(
+                            schedules.filter((_, scheduleIndex) => scheduleIndex !== index),
+                          )
+                        }
+                      />
+                    </InlineStack>
+                  ))
+                ) : (
+                  <Text as="p" tone="subdued">
+                    No schedules added.
+                  </Text>
+                )}
+              </BlockStack>
+            </Card>
           </BlockStack>
         </Layout.Section>
       </Layout>
@@ -580,6 +833,78 @@ export default function NewCustomization() {
           Reach out to live chat support for set up assistance or feature requests.
         </Text>
       </Box>
+
+      <Modal
+        open={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        title="Add schedule"
+        primaryAction={{
+          content: "Save",
+          onAction: addSchedule,
+        }}
+        secondaryActions={[
+          { content: "Cancel", onAction: () => setScheduleModalOpen(false) },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="p">Action</Text>
+              <RadioButton
+                label="Activate"
+                name="schedule-action"
+                checked={scheduleAction === "ACTIVATE"}
+                onChange={() => setScheduleAction("ACTIVATE")}
+              />
+              <RadioButton
+                label="Deactivate"
+                name="schedule-action"
+                checked={scheduleAction === "DEACTIVATE"}
+                onChange={() => setScheduleAction("DEACTIVATE")}
+              />
+            </BlockStack>
+            <TextField
+              label="Date"
+              type="date"
+              value={scheduleDate}
+              onChange={setScheduleDate}
+              autoComplete="off"
+            />
+            <TextField
+              label="Time"
+              type="time"
+              value={scheduleTime}
+              onChange={setScheduleTime}
+              autoComplete="off"
+              helpText={`Timezone: ${scheduleTimezone}`}
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
+      <Modal
+        open={deleteConfirmationOpen}
+        onClose={() => setDeleteConfirmationOpen(false)}
+        title="Delete customization rule?"
+        primaryAction={{
+          content: "Delete",
+          destructive: true,
+          loading: deleting && fetcher.state !== "idle",
+          onAction: deleteCustomizationRule,
+        }}
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: () => setDeleteConfirmationOpen(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <Text as="p">
+            This will permanently delete {customization?.name || "this customization rule"}.
+          </Text>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }

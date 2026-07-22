@@ -1,0 +1,25 @@
+{
+  "name": "calculator-monorepo",
+  "private": true,
+  "packageManager": "npm@10.9.8",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "shopify app dev --path apps/shopify-app",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "shopify": "shopify --path apps/shopify-app",
+    "database:generate": "npm run generate --workspace=@calculator/database",
+    "database:migrate": "npm run migrate:deploy --workspace=@calculator/database",
+    "database:setup": "npm run setup --workspace=@calculator/database"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  }
+}

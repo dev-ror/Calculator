@@ -1,0 +1,20 @@
+{
+  "name": "@calculator/database",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "generate": "prisma generate --schema prisma/schema.prisma",
+    "migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
+    "setup": "npm run generate && npm run migrate:deploy"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.3",
+    "prisma": "^6.16.3"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  }
+}

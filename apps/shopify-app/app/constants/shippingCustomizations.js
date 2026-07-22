@@ -230,3 +230,16 @@ export const getCustomizationActionLabel = (type) => {
   }
   return "Reorder the following shipping methods";
 };
+
+export const getCustomizationTypeLabel = (type) => {
+  const normalizedType = String(type || "").trim().toLowerCase();
+  const typeLabels = {
+    hide: "Hide shipping rates",
+    show: "Show shipping rates",
+    only_show: "Only show specified shipping rates and hide rest",
+    reorder: "Reorder shipping rates",
+    rename: "Rename shipping rates",
+  };
+
+  return typeLabels[normalizedType] || type || "Unknown customization type";
+};
