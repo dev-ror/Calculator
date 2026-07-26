@@ -119,13 +119,14 @@ model CustomizationCondition {
 }
 
 model CustomizationMethod {
-  id              String   @id @default(cuid())
-  shopId          String
-  customizationId String
-  position        Int
-  value           String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  shopId           String
+  customizationId  String
+  position         Int
+  value            String
+  replacementValue String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   customization Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
 
@@ -205,6 +206,7 @@ model RateDefinition {
   description  String?
   minimumDays  Int?
   maximumDays  Int?
+  tags         String?
   currencyCode String
   status       String   @default("DRAFT")
   createdAt    DateTime @default(now())

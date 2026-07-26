@@ -186,7 +186,7 @@ function validateConditions(conditionsBySet, parameterSet) {
   });
 }
 
-function validateMethods(methods) {
+function validateMethods(methods, customizationType) {
   if (!Array.isArray(methods)) {
     throw new TypeError("methods must be an array");
   }
@@ -196,14 +196,44 @@ function validateMethods(methods) {
   }
 
   const normalizedMethods = methods
-    .map((method, index) => optionalString(method, `methods[${index}]`, 255))
+    .map((method, index) => {
+      if (typeof method === "string") {
+        const value = optionalString(method, `methods[${index}]`, 255);
+
+        if (!value) return null;
+        if (customizationType === "rename") {
+          throw new TypeError(`methods[${index}].replacementValue is required`);
+        }
+
+        return { value, replacementValue: null };
+      }
+
+      requireObject(method);
+      const value = optionalString(method.value, `methods[${index}].value`, 255);
+      if (!value) return null;
+
+      const replacementValue =
+        method.replacementValue === undefined || method.replacementValue === null
+          ? null
+          : requireString(
+              method.replacementValue,
+              `methods[${index}].replacementValue`,
+              255,
+            );
+
+      if (customizationType === "rename" && !replacementValue) {
+        throw new TypeError(`methods[${index}].replacementValue is required`);
+      }
+
+      return { value, replacementValue };
+    })
     .filter(Boolean);
 
   if (normalizedMethods.length === 0) {
     throw new TypeError("methods must contain at least one shipping method");
   }
 
-  return normalizedMethods.map((value, position) => ({ position, value }));
+  return normalizedMethods.map((method, position) => ({ position, ...method }));
 }
 
 function validateSchedules(schedules = []) {
@@ -250,12 +280,13 @@ export function validateCustomization(data) {
   requireObject(data);
 
   const parameterSet = requireInteger(data.parameterSet, "parameterSet", 1, 3);
+  const type = requireEnum(data.type, "type", CUSTOMIZATION_TYPES, normalizeCustomizationType);
 
   return {
     ...data,
     shopId: requireString(data.shopId, "shopId"),
     name: requireString(data.name, "name"),
-    type: requireEnum(data.type, "type", CUSTOMIZATION_TYPES, normalizeCustomizationType),
+    type,
     status: requireEnum(data.status ?? "DRAFT", "status", STATUSES, (value) => value.toUpperCase()),
     parameterSet,
     conditionMatch: requireEnum(
@@ -271,7 +302,7 @@ export function validateCustomization(data) {
       (value) => value.toUpperCase(),
     ),
     conditions: validateConditions(data.conditionsBySet, parameterSet),
-    methods: validateMethods(data.methods),
+    methods: validateMethods(data.methods, type),
     schedules: validateSchedules(data.schedules),
   };
 }

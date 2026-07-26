@@ -5,11 +5,17 @@ export function createShop(data) {
 }
 
 export function findShopById(id) {
-  return prisma.shop.findUnique({ where: { id } });
+  return prisma.shop.findUnique({
+    where: { id },
+    include: { configuration: true },
+  });
 }
 
 export function findShopByDomain(shopDomain) {
-  return prisma.shop.findUnique({ where: { shopDomain } });
+  return prisma.shop.findUnique({
+    where: { shopDomain },
+    include: { configuration: true },
+  });
 }
 
 export function findShops() {

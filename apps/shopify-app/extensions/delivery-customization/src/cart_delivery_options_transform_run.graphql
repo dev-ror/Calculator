@@ -1,0 +1,51 @@
+query CartDeliveryOptionsTransformRunInput(
+  $customerTags: [String!]! = []
+  $productTags: [String!]! = []
+) {
+  cart {
+    buyerIdentity {
+      customer {
+        hasTags(tags: $customerTags) {
+          tag
+          hasTag
+        }
+      }
+    }
+    cost {
+      subtotalAmount {
+        amount
+      }
+    }
+    lines {
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          product {
+            hasTags(tags: $productTags) {
+              tag
+              hasTag
+            }
+          }
+        }
+      }
+    }
+    deliveryGroups {
+      deliveryAddress {
+        firstName
+        countryCode
+        provinceCode
+        zip
+      }
+      deliveryOptions {
+        handle
+        title
+      }
+    }
+  }
+  deliveryCustomization {
+    metafield(namespace: "$app:delivery-customization", key: "function-configuration") {
+      jsonValue
+    }
+  }
+}

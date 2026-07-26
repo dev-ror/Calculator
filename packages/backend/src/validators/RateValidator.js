@@ -241,6 +241,7 @@ function validateDefinitions(zoneRates, ruleStatus) {
       description: optionalString(rate.description, `${field}.description`),
       minimumDays,
       maximumDays,
+      tags: optionalString(rate.tags, `${field}.tags`),
       currencyCode: validateCurrency(rate, field),
       status: enumValue(rate.status ?? ruleStatus, `${field}.status`, STATUSES, "DRAFT"),
     };

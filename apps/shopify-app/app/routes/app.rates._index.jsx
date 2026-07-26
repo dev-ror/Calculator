@@ -47,7 +47,7 @@ function requiredString(value, field) {
 }
 
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   try {
     const payload = await actionPayload(request);
@@ -55,7 +55,7 @@ export const action = async ({ request }) => {
 
     if (intent === "update") {
       const id = requiredString(payload.id, "id");
-      const rate = await updateRate(session.shop, id, payload.data);
+      const rate = await updateRate(session.shop, id, payload.data, admin);
       return Response.json({ ok: true, rate });
     }
 
@@ -79,10 +79,10 @@ export const action = async ({ request }) => {
 };
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   try {
-    return await loadRateData(session.shop);
+    return await loadRateData(session.shop, admin);
   } catch {
     throw new Response("Unable to load rate data", { status: 500 });
   }
@@ -111,7 +111,7 @@ export default function RatesIndex() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { rates } = useLoaderData();
+  const { rates, carrierService } = useLoaderData();
   const [pendingDelete, setPendingDelete] = useState([]);
   const {
     selectedResources,
@@ -166,6 +166,7 @@ export default function RatesIndex() {
     >
       <BlockStack gap="400">
    
+        {!carrierService?.available && (
           <Banner
             title="CCS is not enabled for your store."
             tone="critical"
@@ -186,6 +187,7 @@ export default function RatesIndex() {
               </List.Item>
             </List>
           </Banner>
+        )}
 
 
 

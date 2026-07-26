@@ -49,13 +49,13 @@ import { authenticate } from "../shopify.server";
 import { createRate, loadRateData } from "../backend.server";
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const id = new URL(request.url).searchParams.get("id");
 
   if (!id) return { rate: null };
 
   try {
-    const { rates } = await loadRateData(session.shop);
+    const { rates } = await loadRateData(session.shop, admin);
     const rate = rates.find((item) => item.id === id);
 
     if (!rate) {
@@ -70,11 +70,11 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   try {
     const submission = await request.json();
-    const rate = await createRate(session.shop, submission);
+    const rate = await createRate(session.shop, submission, admin);
 
     return Response.json({ ok: true, rate }, { status: 201 });
   } catch (error) {
@@ -307,6 +307,7 @@ export default function NewShippingRateRule() {
             definition.minimumDays === null ? "" : String(definition.minimumDays),
           maximumDays:
             definition.maximumDays === null ? "" : String(definition.maximumDays),
+          tags: definition.tags ?? "",
           currency:
             Object.keys(currencyCodes).find(
               (label) => currencyCodes[label] === definition.currencyCode,

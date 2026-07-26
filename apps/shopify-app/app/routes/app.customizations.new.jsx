@@ -262,7 +262,12 @@ export default function NewCustomization() {
         : [emptyCustomizationCondition()],
   }));
   const [methods, setMethods] = useState(
-    customization ? customization.methods.map((method) => method.value) : [""],
+    customization
+      ? customization.methods.map((method) => ({
+          value: method.value,
+          replacementValue: method.replacementValue ?? "",
+        }))
+      : [{ value: "", replacementValue: "" }],
   );
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -292,7 +297,13 @@ export default function NewCustomization() {
       ),
     );
 
-  const canSave = name.trim() && methods.some((method) => method.trim());
+  const canSave =
+    name.trim() &&
+    methods.some((method) => method.value.trim()) &&
+    (type !== "rename" ||
+      methods.every(
+        (method) => !method.value.trim() || method.replacementValue.trim(),
+      ));
   const save = () => {
     if (!canSave) return;
     const submission = {
@@ -303,7 +314,11 @@ export default function NewCustomization() {
       parameterSet,
       shipmentScope,
       conditionsBySet,
-      methods,
+      methods: methods.map((method) => ({
+        value: method.value,
+        replacementValue:
+          type === "rename" ? method.replacementValue : null,
+      })),
       schedules,
     };
     fetcher.submit(
@@ -350,11 +365,16 @@ export default function NewCustomization() {
     setDeleting(false);
   }, [deleting, fetcher.data, navigate, shopify]);
 
-  const updateMethod = (index, value) =>
-    setMethods(methods.map((method, itemIndex) => (itemIndex === index ? value : method)));
+  const updateMethod = (index, field, value) =>
+    setMethods(
+      methods.map((method, itemIndex) =>
+        itemIndex === index ? { ...method, [field]: value } : method,
+      ),
+    );
   const removeMethod = (index) =>
     setMethods(methods.filter((_, itemIndex) => itemIndex !== index));
-  const addMethod = () => setMethods([...methods, ""]);
+  const addMethod = () =>
+    setMethods([...methods, { value: "", replacementValue: "" }]);
 
   const openScheduleModal = () => {
     setScheduleAction("ACTIVATE");
@@ -707,16 +727,41 @@ export default function NewCustomization() {
                 </InlineStack>
                 {methods.map((method, index) => (
                   <InlineStack gap="200" wrap={false} blockAlign="center" key={index}>
-                    <Box width="100%">
-                      <TextField
-                        label={`Method ${index + 1}`}
-                        labelHidden
-                        placeholder="e.g. Express Shipping"
-                        value={method}
-                        onChange={(value) => updateMethod(index, value)}
-                        autoComplete="off"
-                      />
-                    </Box>
+                    {type === "rename" ? (
+                      <>
+                        <Box width="100%">
+                          <TextField
+                            label="Original Method"
+                            placeholder="e.g. Express Shipping"
+                            value={method.value}
+                            onChange={(value) => updateMethod(index, "value", value)}
+                            autoComplete="off"
+                          />
+                        </Box>
+                        <Box width="100%">
+                          <TextField
+                            label="Replacement Method"
+                            placeholder="e.g. Priority Delivery"
+                            value={method.replacementValue}
+                            onChange={(value) =>
+                              updateMethod(index, "replacementValue", value)
+                            }
+                            autoComplete="off"
+                          />
+                        </Box>
+                      </>
+                    ) : (
+                      <Box width="100%">
+                        <TextField
+                          label={`Method ${index + 1}`}
+                          labelHidden
+                          placeholder="e.g. Express Shipping"
+                          value={method.value}
+                          onChange={(value) => updateMethod(index, "value", value)}
+                          autoComplete="off"
+                        />
+                      </Box>
+                    )}
                     <Button
                       icon={DeleteIcon}
                       accessibilityLabel={`Delete method ${index + 1}`}

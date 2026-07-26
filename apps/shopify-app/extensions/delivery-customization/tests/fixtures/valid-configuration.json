@@ -1,0 +1,173 @@
+{
+  "payload": {
+    "export": "cart_delivery_options_transform_run",
+    "target": "cart.delivery-options.transform.run",
+    "input": {
+      "cart": {
+        "buyerIdentity": {
+          "customer": {
+            "hasTags": [
+              {
+                "tag": "VIP",
+                "hasTag": true
+              }
+            ]
+          }
+        },
+        "cost": {
+          "subtotalAmount": {
+            "amount": "75.00"
+          }
+        },
+        "lines": [
+          {
+            "quantity": 2,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "product": {
+                "hasTags": [
+                  {
+                    "tag": "elite",
+                    "hasTag": true
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "deliveryGroups": [
+          {
+            "deliveryAddress": {
+              "firstName": "shipmagic",
+              "countryCode": "US",
+              "provinceCode": "NY",
+              "zip": "10001"
+            },
+            "deliveryOptions": [
+              {
+                "handle": "express-handle",
+                "title": "Express"
+              }
+            ]
+          }
+        ]
+      },
+      "deliveryCustomization": {
+        "metafield": {
+          "jsonValue": {
+            "shop": {
+              "id": "shop-1",
+              "shopDomain": "example.myshopify.com",
+              "createdAt": "2026-07-26T00:00:00.000Z",
+              "updatedAt": "2026-07-26T00:00:00.000Z"
+            },
+            "testMode": true,
+            "customizations": [
+              {
+                "id": "customization-1",
+                "shopId": "shop-1",
+                "name": "Hide express",
+                "type": "hide",
+                "status": "ACTIVE",
+                "parameterSet": 1,
+                "conditionMatch": "ALL",
+                "shipmentScope": "ALL",
+                "version": 1,
+                "createdAt": "2026-07-26T00:00:00.000Z",
+                "updatedAt": "2026-07-26T00:00:00.000Z",
+                "conditions": [
+                  {
+                    "id": "customization-condition-1",
+                    "shopId": "shop-1",
+                    "customizationId": "customization-1",
+                    "position": 0,
+                    "field": "Delivery method name",
+                    "operator": "Equals",
+                    "key": null,
+                    "value": "Express",
+                    "productMatch": "ALL",
+                    "matchValue": null,
+                    "createdAt": "2026-07-26T00:00:00.000Z",
+                    "updatedAt": "2026-07-26T00:00:00.000Z"
+                  }
+                ],
+                "methods": [
+                  {
+                    "id": "customization-method-1",
+                    "shopId": "shop-1",
+                    "customizationId": "customization-1",
+                    "position": 0,
+                    "value": "Express",
+                    "createdAt": "2026-07-26T00:00:00.000Z",
+                    "updatedAt": "2026-07-26T00:00:00.000Z"
+                  }
+                ],
+                "schedules": []
+              }
+            ],
+            "rateRules": [
+              {
+                "id": "rate-rule-1",
+                "shopId": "shop-1",
+                "name": "Domestic",
+                "priority": 1,
+                "status": "ACTIVE",
+                "conditionMatch": "ALL",
+                "exclusivity": "INCLUSIVE",
+                "version": 1,
+                "createdAt": "2026-07-26T00:00:00.000Z",
+                "updatedAt": "2026-07-26T00:00:00.000Z",
+                "conditions": [
+                  {
+                    "id": "rate-condition-1",
+                    "shopId": "shop-1",
+                    "rateRuleId": "rate-rule-1",
+                    "position": 0,
+                    "field": "Product Tag",
+                    "subfield": null,
+                    "key": null,
+                    "operator": "Equals",
+                    "value": "elite",
+                    "quantityCheck": null,
+                    "quantityValue": null,
+                    "createdAt": "2026-07-26T00:00:00.000Z",
+                    "updatedAt": "2026-07-26T00:00:00.000Z"
+                  }
+                ],
+                "rates": [
+                  {
+                    "id": "rate-definition-1",
+                    "shopId": "shop-1",
+                    "rateRuleId": "rate-rule-1",
+                    "position": 0,
+                    "zoneKey": "domestic",
+                    "name": "Express",
+                    "calculation": "Fixed rate",
+                    "price": 20,
+                    "description": null,
+                    "minimumDays": 1,
+                    "maximumDays": 3,
+                    "currencyCode": "USD",
+                    "status": "ACTIVE",
+                    "createdAt": "2026-07-26T00:00:00.000Z",
+                    "updatedAt": "2026-07-26T00:00:00.000Z"
+                  }
+                ],
+                "schedules": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "deliveryOptionHide": {
+            "deliveryOptionHandle": "express-handle"
+          }
+        }
+      ]
+    }
+  }
+}
