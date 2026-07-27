@@ -1,0 +1,15 @@
+{
+  "name": "@calculator/backend",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@calculator/database": "*"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  }
+}

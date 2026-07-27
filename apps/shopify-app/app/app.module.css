@@ -1,0 +1,298 @@
+/* Home Page */
+.home {
+  max-width: 890px;
+  margin: 0 auto;
+  padding: 8px 0 26px;
+  color: #303030;
+  font-size: 13px;
+}
+.home h2 {
+  font-size: 14px;
+  margin: 16px 0 10px;
+}
+.card {
+  background: #fff;
+  border: 1px solid #d5d5d5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-block: 16px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+.card h6 {
+  margin-bottom: 6px;
+}
+.card h3 {
+  font-size: 14px;
+  margin: 0 0 11px;
+}
+.card p {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.review {
+  margin: 20px 18px;
+  color: #616161;
+  line-height: 1.55;
+}
+.faqCard {
+  padding: 6px 15px;
+}
+.faq+.faq {
+  border-top: 1px solid #eee;
+}
+.faq button {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  text-align: left;
+  font: 600 13px/1.35 inherit;
+  cursor: pointer;
+}
+.faq p {
+  padding: 0 20px 13px;
+  color: #616161;
+  margin: 0;
+}
+.home footer {
+  text-align: center;
+  color: #303030;
+}
+.home footer a {
+  color: #06c;
+}
+@media (max-width: 640px) {
+  .review {
+    margin: 20px 0;
+  }
+  .home {
+    padding-inline: 4px;
+  }
+}
+
+/* Billing Page */
+.billingPage {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 0 54px;
+  color: #303030;
+}
+.billingToggle {
+  width: 220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 3px solid #45e997;
+  border-radius: 11px;
+  padding: 5px;
+  background: #fff;
+}
+.billingToggle button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 9px 16px;
+  font: 500 16px/1.2 inherit;
+  color: #303030;
+  cursor: pointer;
+}
+.billingToggle .activeBillingTab {
+  background: #171717;
+  color: #fff;
+}
+.yearlyOffer {
+  text-align: center;
+  margin: 14px 0 20px;
+  font-size: 15px;
+}
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.pricingCard {
+  min-height: 455px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 28px 25px 24px;
+  display: flex;
+  flex-direction: column;
+}
+.pricingCard h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+.planDescription {
+  margin: 0;
+  min-height: 48px;
+  line-height: 1.5;
+}
+.planPrice {
+  display: flex;
+  align-items: baseline;
+  margin: 50px 0 32px;
+  white-space: nowrap;
+}
+.planPrice span {
+  font-size: 48px;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.planPrice small {
+  font-size: 17px;
+  margin-left: 7px;
+}
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 26px;
+  display: grid;
+  gap: 15px;
+  font-size: 14px;
+}
+.featureList li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  line-height: 1.35;
+}
+.included {
+  color: #008f65;
+  font-size: 21px;
+}
+.excluded {
+  color: #e51c3e;
+  font-size: 27px;
+  line-height: 0.8;
+}
+.buyButton,
+.currentPlanButton {
+  width: 100%;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font: 600 14px/1.2 inherit;
+  margin-top: auto;
+}
+.buyButton {
+  background: #303030;
+  color: #fff;
+  border: 1px solid #171717;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+.currentPlanButton {
+  border: 0;
+  background: #d6d6d6;
+  color: #fff;
+}
+.planHelp {
+  text-align: center;
+  margin: 52px 0 0;
+}
+.planHelp a {
+  color: #06c;
+}
+@media (max-width: 900px) {
+  .pricingGrid {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .pricingCard {
+    min-height: auto;
+  }
+  .planPrice {
+    margin: 40px 0 30px;
+  }
+}
+@media (max-width: 640px) {
+  .billingPage {
+    padding-top: 20px;
+  }
+  .billingToggle {
+    width: auto;
+    max-width: 250px;
+  }
+  .pricingCard {
+    padding: 28px 22px;
+  }
+  .pricingCard h2 {
+    font-size: 27px;
+  }
+  .planPrice span {
+    font-size: 48px;
+  }
+  .planPrice small {
+    font-size: 17px;
+  }
+}
+
+/* Video Page */
+.videoCardCell,
+.videoCardCell :global(.Polaris-ShadowBevel),
+.videoCardCell :global(.Polaris-Card) {
+  height: 100%;
+}
+
+/* Settings Page */
+.settingsToggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+.settingsToggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.settingsToggle span {
+  width: 46px;
+  height: 24px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #c9cccf;
+  transition: background .18s ease;
+  box-sizing: border-box;
+}
+.settingsToggle span::after {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .22);
+  transition: transform .18s ease;
+}
+.settingsToggle input:checked+span {
+  background: #303030;
+}
+.settingsToggle input:checked+span::after {
+  transform: translateX(22px);
+}
+.settingsToggle input:focus-visible+span {
+  outline: 2px solid #005bd3;
+  outline-offset: 2px;
+}
+.secretRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+a {
+  color: #005bd3;
+}
+@media (max-width: 640px) {
+  .secretRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .secretRow> :last-child {
+    grid-column: 2;
+  }
+}
