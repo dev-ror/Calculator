@@ -5,3 +5,4 @@ export * as CustomizationService from "./CustomizationService.js";
 export * as ShopService from "./ShopService.js";
 export * as ConfigurationSyncService from "./ConfigurationSyncService.js";
 export * as DeliveryCustomizationOwnerService from "./DeliveryCustomizationOwnerService.js";
+export * as ScheduleRuntimeService from "./ScheduleRuntimeService.js";

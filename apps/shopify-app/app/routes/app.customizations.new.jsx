@@ -30,6 +30,7 @@ import {
   hasProductMatchOptions,
   productMatchOptions,
   quantityMatches,
+  unsupportedCheckoutConditionFields,
 } from "../constants/shippingCustomizations";
 import { authenticate } from "../shopify.server";
 import { createCustomization, loadCustomizations } from "../backend.server";
@@ -159,7 +160,14 @@ const fieldGroupsByParameterSet = {
 const conditionFieldOptionsFor = (parameterSet) =>
   fieldGroupsByParameterSet[parameterSet].map((group) => ({
     title: group.title,
-    options: group.options.map((label) => ({ label, value: label })),
+    options: group.options.map((value) => {
+      const unsupported = unsupportedCheckoutConditionFields.has(value);
+      return {
+        label: unsupported ? `${value} (not supported at Shopify checkout)` : value,
+        value,
+        disabled: unsupported,
+      };
+    }),
   }));
 
 const keyedConditionFields = new Set([

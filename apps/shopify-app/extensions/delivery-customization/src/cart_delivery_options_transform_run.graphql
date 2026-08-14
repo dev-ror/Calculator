@@ -4,10 +4,16 @@ query CartDeliveryOptionsTransformRunInput(
 ) {
   cart {
     buyerIdentity {
+      isAuthenticated
       customer {
         hasTags(tags: $customerTags) {
           tag
           hasTag
+        }
+      }
+      purchasingCompany {
+        company {
+          name
         }
       }
     }
@@ -18,10 +24,21 @@ query CartDeliveryOptionsTransformRunInput(
     }
     lines {
       quantity
+      cost {
+        amountPerQuantity { amount }
+        subtotalAmount { amount }
+      }
+      sellingPlanAllocation { __typename }
       merchandise {
         __typename
         ... on ProductVariant {
+          sku
+          title
+          weight
           product {
+            title
+            productType
+            vendor
             hasTags(tags: $productTags) {
               tag
               hasTag
@@ -31,8 +48,10 @@ query CartDeliveryOptionsTransformRunInput(
       }
     }
     deliveryGroups {
+      groupType
       deliveryAddress {
         firstName
+        address1
         countryCode
         provinceCode
         zip
@@ -40,6 +59,7 @@ query CartDeliveryOptionsTransformRunInput(
       deliveryOptions {
         handle
         title
+        cost { amount }
       }
     }
   }

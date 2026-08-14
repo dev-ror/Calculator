@@ -61,7 +61,7 @@ export async function ensureDeliveryCustomizationOwner(shopId) {
   );
 }
 
-export async function syncFunctionConfiguration(shopId) {
+export async function syncFunctionConfiguration(shopId, { asOf = new Date() } = {}) {
   try {
     return await services.ConfigurationSyncService.syncFunctionConfiguration(
       shopId,
@@ -124,6 +124,7 @@ export async function syncFunctionConfiguration(shopId) {
           metafield,
         };
       },
+      { asOf },
     );
   } catch (error) {
     const safeMessages = new Set([
@@ -147,6 +148,14 @@ export async function syncFunctionConfiguration(shopId) {
 
     throw new Error("Unable to synchronize Shopify Function configuration");
   }
+}
+
+export function processCustomizationSchedules({ asOf = new Date() } = {}) {
+  return services.ScheduleRuntimeService.processSchedules({
+    asOf,
+    syncShop: (shopId, effectiveAt) =>
+      syncFunctionConfiguration(shopId, { asOf: effectiveAt }),
+  });
 }
 
 export async function ensureShop(shopDomain) {

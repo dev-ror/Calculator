@@ -72,6 +72,17 @@ export function findCustomizationsByShop(shopId) {
   });
 }
 
+export async function findShopIdsWithDueCustomizationSchedules(asOf) {
+  const schedules = await prisma.customizationSchedule.findMany({
+    where: { scheduledAt: { lte: asOf } },
+    select: { shopId: true },
+    distinct: ["shopId"],
+    orderBy: { shopId: "asc" },
+  });
+
+  return schedules.map(({ shopId }) => shopId);
+}
+
 export function updateCustomization(
   id,
   shopId,
