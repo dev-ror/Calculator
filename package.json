@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "shopify app dev --path apps/shopify-app",
+    "dev": "dotenv -e .env -- shopify app dev --path apps/shopify-app",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "shopify": "shopify --path apps/shopify-app",
@@ -17,6 +17,7 @@
     "database:setup": "npm run setup --workspace=@calculator/database"
   },
   "devDependencies": {
+    "dotenv-cli": "^11.0.0",
     "turbo": "^2.5.5"
   },
   "engines": {

@@ -1,53 +1,61 @@
 import prisma from "../client.js";
 
-export function createCustomization({ customization, conditions, methods, schedules }) {
-  return prisma.$transaction(async (transaction) => {
-    const createdCustomization = await transaction.customization.create({
-      data: customization,
-    });
+export function createCustomization({
+  customization,
+  conditions,
+  methods,
+  schedules,
+}) {
+  return prisma.$transaction(
+    async (transaction) => {
+      const createdCustomization = await transaction.customization.create({
+        data: customization,
+      });
 
-    if (conditions.length > 0) {
-      await transaction.customizationCondition.createMany({
-        data: conditions.map((condition) => ({
-          ...condition,
+      if (conditions.length > 0) {
+        await transaction.customizationCondition.createMany({
+          data: conditions.map((condition) => ({
+            ...condition,
+            shopId: createdCustomization.shopId,
+            customizationId: createdCustomization.id,
+          })),
+        });
+      }
+
+      await transaction.customizationMethod.createMany({
+        data: methods.map((method) => ({
+          ...method,
           shopId: createdCustomization.shopId,
           customizationId: createdCustomization.id,
         })),
       });
-    }
 
-    await transaction.customizationMethod.createMany({
-      data: methods.map((method) => ({
-        ...method,
-        shopId: createdCustomization.shopId,
-        customizationId: createdCustomization.id,
-      })),
-    });
+      if (schedules.length > 0) {
+        await transaction.customizationSchedule.createMany({
+          data: schedules.map((schedule) => ({
+            ...schedule,
+            shopId: createdCustomization.shopId,
+            customizationId: createdCustomization.id,
+          })),
+        });
+      }
 
-    if (schedules.length > 0) {
-      await transaction.customizationSchedule.createMany({
-        data: schedules.map((schedule) => ({
-          ...schedule,
-          shopId: createdCustomization.shopId,
-          customizationId: createdCustomization.id,
-        })),
-      });
-    }
-
-    return transaction.customization.findUnique({
-      where: {
-        id_shopId: {
-          id: createdCustomization.id,
-          shopId: createdCustomization.shopId,
+      return transaction.customization.findUnique({
+        where: {
+          id_shopId: {
+            id: createdCustomization.id,
+            shopId: createdCustomization.shopId,
+          },
         },
-      },
-      include: {
-        conditions: true,
-        methods: true,
-        schedules: { orderBy: { position: "asc" } },
-      },
-    });
-  });
+        include: {
+          conditions: true,
+          methods: true,
+          schedules: { orderBy: { position: "asc" } },
+        },
+      });
+    },
+    { timeout: 15_000 },
+  );
 }
 
 export function findCustomizationById(id, shopId) {
@@ -88,58 +96,61 @@ export function updateCustomization(
   shopId,
   { customization, conditions, methods, schedules },
 ) {
-  return prisma.$transaction(async (transaction) => {
-    await transaction.customization.update({
-      where: { id_shopId: { id, shopId } },
-      data: customization,
-    });
-    await transaction.customizationCondition.deleteMany({
-      where: { customizationId: id, shopId },
-    });
-    await transaction.customizationMethod.deleteMany({
-      where: { customizationId: id, shopId },
-    });
-    await transaction.customizationSchedule.deleteMany({
-      where: { customizationId: id, shopId },
-    });
+  return prisma.$transaction(
+    async (transaction) => {
+      await transaction.customization.update({
+        where: { id_shopId: { id, shopId } },
+        data: customization,
+      });
+      await transaction.customizationCondition.deleteMany({
+        where: { customizationId: id, shopId },
+      });
+      await transaction.customizationMethod.deleteMany({
+        where: { customizationId: id, shopId },
+      });
+      await transaction.customizationSchedule.deleteMany({
+        where: { customizationId: id, shopId },
+      });
 
-    if (conditions.length > 0) {
-      await transaction.customizationCondition.createMany({
-        data: conditions.map((condition) => ({
-          ...condition,
+      if (conditions.length > 0) {
+        await transaction.customizationCondition.createMany({
+          data: conditions.map((condition) => ({
+            ...condition,
+            shopId,
+            customizationId: id,
+          })),
+        });
+      }
+
+      await transaction.customizationMethod.createMany({
+        data: methods.map((method) => ({
+          ...method,
           shopId,
           customizationId: id,
         })),
       });
-    }
 
-    await transaction.customizationMethod.createMany({
-      data: methods.map((method) => ({
-        ...method,
-        shopId,
-        customizationId: id,
-      })),
-    });
+      if (schedules.length > 0) {
+        await transaction.customizationSchedule.createMany({
+          data: schedules.map((schedule) => ({
+            ...schedule,
+            shopId,
+            customizationId: id,
+          })),
+        });
+      }
 
-    if (schedules.length > 0) {
-      await transaction.customizationSchedule.createMany({
-        data: schedules.map((schedule) => ({
-          ...schedule,
-          shopId,
-          customizationId: id,
-        })),
+      return transaction.customization.findUnique({
+        where: { id_shopId: { id, shopId } },
+        include: {
+          conditions: true,
+          methods: true,
+          schedules: { orderBy: { position: "asc" } },
+        },
       });
-    }
-
-    return transaction.customization.findUnique({
-      where: { id_shopId: { id, shopId } },
-      include: {
-        conditions: true,
-        methods: true,
-        schedules: { orderBy: { position: "asc" } },
-      },
-    });
-  });
+    },
+    { timeout: 15_000 },
+  );
 }
 
 export function deleteCustomization(id, shopId) {

@@ -1,16 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:../../../apps/shopify-app/prisma/dev.sqlite"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Session {
@@ -34,14 +29,13 @@ model Session {
 }
 
 model Shop {
-  id         String   @id @default(cuid())
-  shopDomain String   @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  configuration  ShopConfiguration?
+  id             String             @id @default(cuid())
+  shopDomain     String             @unique
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   customizations Customization[]
   rateRules      RateRule[]
+  configuration  ShopConfiguration?
 }
 
 model ShopConfiguration {
@@ -55,51 +49,48 @@ model ShopConfiguration {
   version                Int      @default(1)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
-
-  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop                   Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
 
 model Customization {
-  id             String   @id @default(cuid())
+  id             String                   @id @default(cuid())
   shopId         String
   name           String
   type           String
-  status         String   @default("DRAFT")
+  status         String                   @default("DRAFT")
   parameterSet   Int
-  conditionMatch String   @default("ALL")
-  shipmentScope  String   @default("ALL")
-  version        Int      @default(1)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  shop       Shop                     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  conditions CustomizationCondition[]
-  methods    CustomizationMethod[]
-  schedules  CustomizationSchedule[]
+  conditionMatch String                   @default("ALL")
+  shipmentScope  String                   @default("ALL")
+  version        Int                      @default(1)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  shop           Shop                     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  conditions     CustomizationCondition[]
+  methods        CustomizationMethod[]
+  schedules      CustomizationSchedule[]
 
   @@unique([id, shopId])
   @@index([shopId, status])
 }
 
 model CustomizationSchedule {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   shopId          String
   customizationId String
   position        Int
   action          String
   scheduledAt     DateTime
   timezone        String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  customization Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  customization   Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
 
   @@unique([customizationId, position])
   @@index([shopId, scheduledAt])
 }
 
 model CustomizationCondition {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   shopId          String
   customizationId String
   position        Int
@@ -109,47 +100,44 @@ model CustomizationCondition {
   value           String?
   productMatch    String?
   matchValue      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  customization Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  customization   Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
 
   @@unique([customizationId, position])
   @@index([shopId])
 }
 
 model CustomizationMethod {
-  id               String   @id @default(cuid())
+  id               String        @id @default(cuid())
   shopId           String
   customizationId  String
   position         Int
   value            String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   replacementValue String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  customization Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
+  customization    Customization @relation(fields: [customizationId, shopId], references: [id, shopId], onDelete: Cascade)
 
   @@unique([customizationId, position])
   @@index([shopId])
 }
 
 model RateRule {
-  id             String   @id @default(cuid())
+  id             String           @id @default(cuid())
   shopId         String
   name           String
   priority       Int
-  status         String   @default("DRAFT")
-  conditionMatch String   @default("ALL")
-  exclusivity    String   @default("INCLUSIVE")
-  version        Int      @default(1)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  shop       Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  conditions RateCondition[]
-  rates      RateDefinition[]
-  schedules  RateSchedule[]
+  status         String           @default("DRAFT")
+  conditionMatch String           @default("ALL")
+  exclusivity    String           @default("INCLUSIVE")
+  version        Int              @default(1)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  conditions     RateCondition[]
+  rates          RateDefinition[]
+  shop           Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  schedules      RateSchedule[]
 
   @@unique([id, shopId])
   @@unique([shopId, priority])
@@ -166,8 +154,7 @@ model RateSchedule {
   timezone    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  rateRule RateRule @relation(fields: [rateRuleId, shopId], references: [id, shopId], onDelete: Cascade)
+  rateRule    RateRule @relation(fields: [rateRuleId, shopId], references: [id, shopId], onDelete: Cascade)
 
   @@unique([rateRuleId, position])
   @@index([shopId, scheduledAt])
@@ -187,8 +174,7 @@ model RateCondition {
   quantityValue String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  rateRule RateRule @relation(fields: [rateRuleId, shopId], references: [id, shopId], onDelete: Cascade)
+  rateRule      RateRule @relation(fields: [rateRuleId, shopId], references: [id, shopId], onDelete: Cascade)
 
   @@unique([rateRuleId, position])
   @@index([shopId])
@@ -201,18 +187,17 @@ model RateDefinition {
   position     Int
   zoneKey      String
   name         String
-  calculation  String   @default("Fixed rate")
-  price        Float?
   description  String?
   minimumDays  Int?
   maximumDays  Int?
-  tags         String?
   currencyCode String
   status       String   @default("DRAFT")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  rateRule RateRule @relation(fields: [rateRuleId, shopId], references: [id, shopId], onDelete: Cascade)
+  calculation  String   @default("Fixed rate")
+  price        Float?
+  tags         String?
+  rateRule     RateRule @relation(fields: [rateRuleId, shopId], references: [id, shopId], onDelete: Cascade)
 
   @@unique([rateRuleId, position])
   @@index([shopId, zoneKey])

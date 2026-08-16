@@ -3,4 +3,4 @@ roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 [commands]
 predev = "npm --prefix ../.. run database:generate"
-dev = "npm --prefix ../.. run database:migrate && npm exec react-router dev"
+dev = "npm --prefix ../.. run database:migrate && npm --prefix ../.. exec -- dotenv -e ../../.env -- npm exec react-router dev"

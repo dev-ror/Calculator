@@ -2,8 +2,8 @@
 CREATE TABLE "Shop" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "shopDomain" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
@@ -16,8 +16,8 @@ CREATE TABLE "ShopConfiguration" (
     "blendMode" TEXT NOT NULL DEFAULT 'add',
     "contactEmail" TEXT,
     "version" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "ShopConfiguration_shopId_fkey" FOREIGN KEY ("shopId") REFERENCES "Shop" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -32,10 +32,13 @@ CREATE TABLE "Customization" (
     "conditionMatch" TEXT NOT NULL DEFAULT 'ALL',
     "shipmentScope" TEXT NOT NULL DEFAULT 'ALL',
     "version" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "Customization_shopId_fkey" FOREIGN KEY ("shopId") REFERENCES "Shop" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- The composite key must exist before PostgreSQL creates child foreign keys.
+CREATE UNIQUE INDEX "Customization_id_shopId_key" ON "Customization"("id", "shopId");
 
 -- CreateTable
 CREATE TABLE "CustomizationCondition" (
@@ -49,8 +52,8 @@ CREATE TABLE "CustomizationCondition" (
     "value" TEXT,
     "productMatch" TEXT,
     "matchValue" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "CustomizationCondition_customizationId_shopId_fkey" FOREIGN KEY ("customizationId", "shopId") REFERENCES "Customization" ("id", "shopId") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -61,8 +64,8 @@ CREATE TABLE "CustomizationMethod" (
     "customizationId" TEXT NOT NULL,
     "position" INTEGER NOT NULL,
     "value" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "CustomizationMethod_customizationId_shopId_fkey" FOREIGN KEY ("customizationId", "shopId") REFERENCES "Customization" ("id", "shopId") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -76,10 +79,13 @@ CREATE TABLE "RateRule" (
     "conditionMatch" TEXT NOT NULL DEFAULT 'ALL',
     "exclusivity" TEXT NOT NULL DEFAULT 'INCLUSIVE',
     "version" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "RateRule_shopId_fkey" FOREIGN KEY ("shopId") REFERENCES "Shop" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- The composite key must exist before PostgreSQL creates child foreign keys.
+CREATE UNIQUE INDEX "RateRule_id_shopId_key" ON "RateRule"("id", "shopId");
 
 -- CreateTable
 CREATE TABLE "RateCondition" (
@@ -94,8 +100,8 @@ CREATE TABLE "RateCondition" (
     "value" TEXT,
     "quantityCheck" TEXT,
     "quantityValue" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "RateCondition_rateRuleId_shopId_fkey" FOREIGN KEY ("rateRuleId", "shopId") REFERENCES "RateRule" ("id", "shopId") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -112,8 +118,8 @@ CREATE TABLE "RateDefinition" (
     "maximumDays" INTEGER,
     "currencyCode" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "RateDefinition_rateRuleId_shopId_fkey" FOREIGN KEY ("rateRuleId", "shopId") REFERENCES "RateRule" ("id", "shopId") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -122,9 +128,6 @@ CREATE UNIQUE INDEX "Shop_shopDomain_key" ON "Shop"("shopDomain");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ShopConfiguration_shopId_key" ON "ShopConfiguration"("shopId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Customization_id_shopId_key" ON "Customization"("id", "shopId");
 
 -- CreateIndex
 CREATE INDEX "Customization_shopId_status_idx" ON "Customization"("shopId", "status");
@@ -140,9 +143,6 @@ CREATE UNIQUE INDEX "CustomizationMethod_customizationId_position_key" ON "Custo
 
 -- CreateIndex
 CREATE INDEX "CustomizationMethod_shopId_idx" ON "CustomizationMethod"("shopId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "RateRule_id_shopId_key" ON "RateRule"("id", "shopId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "RateRule_shopId_priority_key" ON "RateRule"("shopId", "priority");
