@@ -108,7 +108,17 @@ function callbackUrl(shopDomain) {
 
 function graphQLError(payload, operation) {
   if (payload.errors?.length) {
-    throw new Error(`Shopify ${operation} failed`);
+    const details = payload.errors
+      .map((error) => {
+        const code = error.extensions?.code;
+        return code ? `${error.message} (${code})` : error.message;
+      })
+      .filter(Boolean)
+      .join("; ");
+
+    throw new Error(
+      `Shopify ${operation} failed${details ? `: ${details}` : ""}`,
+    );
   }
 }
 

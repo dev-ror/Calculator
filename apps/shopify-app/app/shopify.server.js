@@ -6,6 +6,13 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "@calculator/database";
+import { ensureCarrierService } from "./carrier-service.server";
+
+function isCarrierServiceUnavailable(message) {
+  return /carrier calculated shipping must be enabled|carrier calculated shipping.*(?:unavailable|not enabled|not eligible)|ccs.*(?:unavailable|not enabled|not eligible)/i.test(
+    message,
+  );
+}
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -16,6 +23,24 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
+  hooks: {
+    afterAuth: async ({ admin, session }) => {
+      try {
+        await ensureCarrierService(admin, session.shop);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown Shopify API error";
+
+        if (isCarrierServiceUnavailable(message)) {
+          console.warn(
+            "Carrier Service registration skipped: carrier-calculated shipping is not enabled for this store",
+          );
+        } else {
+          console.error(`Carrier Service registration failed: ${message}`);
+        }
+      }
+    },
+  },
   future: {
     expiringOfflineAccessTokens: true,
   },
