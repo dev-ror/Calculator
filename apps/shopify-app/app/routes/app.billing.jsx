@@ -33,8 +33,8 @@ const plans = [
   {
     name: "Pro",
     description: "For Shipping Rates and Shipping Customizations",
-    monthly: 29,
-    yearly: 290,
+    monthly: 39,
+    yearly: 390,
     features: [
       [true, "Use Shipping Rates in Live Mode"],
       [true, "Use Shipping Customizations in Live Mode"],

@@ -338,24 +338,23 @@ export async function mapCarrierRequest(admin, payload, shopId) {
   };
 }
 
-function sameCountry(request) {
-  const originCountry = String(request.origin?.countryCode ?? "").toUpperCase();
-  const destinationCountry = String(
-    request.destination?.countryCode ?? "",
-  ).toUpperCase();
+export function filterRatesForZone(result, zone) {
+  if (!zone) return { ...result, rates: [] };
 
-  return Boolean(
-    originCountry &&
-      destinationCountry &&
-      originCountry === destinationCountry,
-  );
-}
-
-function matchesZone(rate, request) {
-  const zone = String(rate.zoneKey ?? "").trim().toLowerCase();
-
-  if (!zone || !["domestic", "international"].includes(zone)) return true;
-  return zone === "domestic" ? sameCountry(request) : !sameCountry(request);
+  return {
+    ...result,
+    rates: (Array.isArray(result?.rates) ? result.rates : []).filter((rate) => {
+      const zoneKey = String(rate.zoneKey ?? "");
+      if (zoneKey === zone.id) return true;
+      if (zoneKey.toLowerCase() === "domestic") {
+        return zone.name === "Domestic" && !zone.isRestOfWorld;
+      }
+      if (zoneKey.toLowerCase() === "international") {
+        return zone.isRestOfWorld;
+      }
+      return false;
+    }),
+  };
 }
 
 function serviceCode(rate) {
@@ -365,19 +364,49 @@ function serviceCode(rate) {
   return `calculator-${normalized}`.slice(0, 100);
 }
 
+function deliveryDateFields(rate, today) {
+  const readDays = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const days = Number(value);
+    return Number.isFinite(days) && days >= 0 ? days : null;
+  };
+
+  let minimumDays = readDays(rate.minimumDays);
+  let maximumDays = readDays(rate.maximumDays);
+
+  if (minimumDays === null && maximumDays === null) return {};
+  if (minimumDays === null) minimumDays = maximumDays;
+  if (maximumDays === null) maximumDays = minimumDays;
+  if (minimumDays > maximumDays) {
+    [minimumDays, maximumDays] = [maximumDays, minimumDays];
+  }
+
+  const formatDate = (days) => {
+    const date = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+    return `${date.toISOString().slice(0, 10)} 00:00:00 +0000`;
+  };
+
+  return {
+    min_delivery_date: formatDate(minimumDays),
+    max_delivery_date: formatDate(maximumDays),
+  };
+}
+
 export function formatCarrierResponse(result, request) {
   const rates = Array.isArray(result?.rates) ? result.rates : [];
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
 
   return {
     rates: rates
       .filter(
         (rate) =>
           String(rate.status).toUpperCase() === "ACTIVE" &&
-          matchesZone(rate, request) &&
           Number.isFinite(Number(rate.price)) &&
           Number(rate.price) >= 0,
       )
       .map((rate) => ({
+        ...deliveryDateFields(rate, today),
         service_name: String(rate.name),
         service_code: serviceCode(rate),
         description: String(
