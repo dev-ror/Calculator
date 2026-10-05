@@ -14,6 +14,7 @@ const plans = [
     features: [
       [false, "Use Shipping Rates in Live Mode"],
       [false, "Use Shipping Customizations in Live Mode"],
+      [false, "Custom Coded Shipping Rates"],
       [true, "Configure rules & preview behavior in test mode only"],
       [true, "Hero Support"],
     ],
@@ -26,6 +27,7 @@ const plans = [
     features: [
       [false, "Use Shipping Rates in Live Mode"],
       [true, "Use Shipping Customizations in Live Mode"],
+      [false, "Custom Coded Shipping Rates"],
       [true, "14-day free trial"],
       [true, "Hero support"],
     ],
@@ -38,11 +40,26 @@ const plans = [
     features: [
       [true, "Use Shipping Rates in Live Mode"],
       [true, "Use Shipping Customizations in Live Mode"],
+      [false, "Custom Coded Shipping Rates"],
+      [true, "14-day free trial"],
+      [true, "Hero support"],
+    ],
+  },
+  {
+    name: "Pro+",
+    description: "For Shipping Rates and Shipping Customizations",
+    monthly: 59,
+    yearly: 590,
+    features: [
+      [true, "Use Shipping Rates in Live Mode"],
+      [true, "Use Shipping Customizations in Live Mode"],
+      [true, "Custom Coded Shipping Rates"],
       [true, "14-day free trial"],
       [true, "Hero support"],
     ],
   },
 ];
+
 
 export default function Billing() {
   const navigate = useNavigate();
@@ -53,6 +70,7 @@ export default function Billing() {
     <Page
       title="Shipping Rates"
       backAction={{ content: "Back", onAction: () => navigate(-1) }}
+      fullWidth
     >
       <div className={styles.billingPage}>
         <div
