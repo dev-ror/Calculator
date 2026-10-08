@@ -4,13 +4,15 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { REGION_MAP } from "../constants/regions";
 import { ensureDefaultZones } from "../zones.server";
+import { ensureShop } from "../backend.server";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  await ensureDefaultZones(session.shop);
+  const shop = await ensureShop(session.shop);
+  await ensureDefaultZones(shop.id);
 
   const zones = await prisma.zone.findMany({
-    where: { shopId: session.shop },
+    where: { shopId: shop.id },
     orderBy: { createdAt: "asc" },
   });
 

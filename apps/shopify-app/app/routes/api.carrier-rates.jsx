@@ -45,7 +45,7 @@ export const action = async ({ request }) => {
       shop.id,
     );
     const zones = await prisma.zone.findMany({
-      where: { shopId: shopDomain },
+      where: { shopId: shop.id },
       orderBy: { createdAt: "asc" },
     });
     const matchedZone = matchZone(

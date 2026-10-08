@@ -3,6 +3,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import ZoneForm from "../components/ZoneForm";
 import { getTaken, getRowHolder, validateZone, countriesLabel, parseRegions } from "../zones.server";
+import { ensureShop } from "../backend.server";
 
 async function findZone(shopId, id) {
   const zone = await prisma.zone.findFirst({ where: { id, shopId } });
@@ -12,7 +13,8 @@ async function findZone(shopId, id) {
 
 export const loader = async ({ request, params }) => {
   const { session } = await authenticate.admin(request);
-  const zone = await findZone(session.shop, params.id);
+  const shop = await ensureShop(session.shop);
+  const zone = await findZone(shop.id, params.id);
 
   return {
     zone: {
@@ -21,14 +23,15 @@ export const loader = async ({ request, params }) => {
       isRestOfWorld: zone.isRestOfWorld,
       regions: zone.regions || {},
     },
-    taken: await getTaken(session.shop, zone.id),
-    rowHolder: await getRowHolder(session.shop, zone.id),
+    taken: await getTaken(shop.id, zone.id),
+    rowHolder: await getRowHolder(shop.id, zone.id),
   };
 };
 
 export const action = async ({ request, params }) => {
   const { session } = await authenticate.admin(request);
-  const zone = await findZone(session.shop, params.id);
+  const shop = await ensureShop(session.shop);
+  const zone = await findZone(shop.id, params.id);
   const form = await request.formData();
 
   if (form.get("intent") === "delete") {
@@ -42,7 +45,7 @@ const regions = isRestOfWorld ? {} : parseRegions(form.get("regions"));
 if (regions === null) return { error: "Invalid regions." };
 
   const error = await validateZone({
-    shopId: session.shop, excludeId: zone.id, name, isRestOfWorld, regions,
+    shopId: shop.id, excludeId: zone.id, name, isRestOfWorld, regions,
   });
   if (error) return { error };
 
