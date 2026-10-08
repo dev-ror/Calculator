@@ -338,12 +338,13 @@ export async function mapCarrierRequest(admin, payload, shopId) {
   };
 }
 
-export function filterRatesForZone(result, zone) {
+export function filterRatesForZone(result, zone, customCodeAllowed = true) {
   if (!zone) return { ...result, rates: [] };
 
   return {
     ...result,
     rates: (Array.isArray(result?.rates) ? result.rates : []).filter((rate) => {
+      if (!customCodeAllowed && isCustomCodeRate(rate)) return false;
       const zoneKey = String(rate.zoneKey ?? "");
       if (zoneKey === zone.id) return true;
       if (zoneKey.toLowerCase() === "domestic") {
@@ -355,6 +356,10 @@ export function filterRatesForZone(result, zone) {
       return false;
     }),
   };
+}
+
+function isCustomCodeRate(rate) {
+  return /custom[\s_-]*cod(?:e|ed)/i.test(String(rate.calculation ?? ""));
 }
 
 function serviceCode(rate) {

@@ -1,16 +1,87 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import styles from "../app.module.css";
 import { Page } from "@shopify/polaris";
-import { useNavigate } from "react-router";
+import { redirect, useFetcher, useLoaderData, useNavigate } from "react-router";
+import { authenticate, BILLING_PLANS } from "../shopify.server";
+import {
+  billingPlanName,
+  getPlan,
+  invalidatePlanCache,
+  isBillingTest,
+} from "../billing.server";
+
+const planNames = Object.values(BILLING_PLANS);
+
+export const loader = async ({ request }) => {
+  const { billing, session } = await authenticate.admin(request);
+  invalidatePlanCache(session.shop);
+  return { currentPlan: await getPlan(billing, session) };
+};
+
+export const action = async ({ request }) => {
+  const { billing, session } = await authenticate.admin(request);
+  const form = await request.formData();
+  const intent = form.get("intent");
+  const isTest = isBillingTest();
+
+  try {
+    if (intent === "purchase") {
+      const plan = String(form.get("plan") ?? "");
+      const cycle = String(form.get("cycle") ?? "monthly");
+      const billingName = billingPlanName(plan, cycle);
+      if (!billingName || plan === "sandbox") {
+        return { error: "Select a valid plan." };
+      }
+      await billing.request({
+        plan: billingName,
+        isTest,
+      });
+    }
+
+    if (intent === "cancel") {
+      const { appSubscriptions } = await billing.check({
+        plans: planNames,
+        isTest,
+      });
+      const subscription = appSubscriptions.find(
+        (item) => item.status === undefined || item.status === "ACTIVE",
+      );
+      if (subscription) {
+        await billing.cancel({
+          subscriptionId: subscription.id,
+          isTest,
+          prorate: false,
+        });
+      }
+      invalidatePlanCache(session.shop);
+      return redirect("/app/billing");
+    }
+
+    return { error: "Unsupported billing action." };
+  } catch (error) {
+    if (error instanceof Response) throw error;
+    const billingErrors = Array.isArray(error?.errorData)
+      ? error.errorData
+          .map((item) => item?.message)
+          .filter((message) => typeof message === "string" && message.trim())
+      : [];
+    const message = billingErrors[0] ?? error?.message;
+    return {
+      error: typeof message === "string" && message.trim()
+        ? message
+        : "Unable to update the Shopify subscription.",
+    };
+  }
+};
 
 const plans = [
   {
+    key: "sandbox",
     name: "Sandbox / Test",
     description: "Try the full app in test mode. No charges.",
     monthly: 0,
     yearly: 0,
-    current: true,
     features: [
       [false, "Use Shipping Rates in Live Mode"],
       [false, "Use Shipping Customizations in Live Mode"],
@@ -20,6 +91,7 @@ const plans = [
     ],
   },
   {
+    key: "starter",
     name: "Starter",
     description: "For Shipping Customizations only",
     monthly: 14,
@@ -33,6 +105,7 @@ const plans = [
     ],
   },
   {
+    key: "pro",
     name: "Pro",
     description: "For Shipping Rates and Shipping Customizations",
     monthly: 39,
@@ -46,6 +119,7 @@ const plans = [
     ],
   },
   {
+    key: "proplus",
     name: "Pro+",
     description: "For Shipping Rates and Shipping Customizations",
     monthly: 59,
@@ -65,6 +139,18 @@ export default function Billing() {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState("monthly");
   const shopify = useAppBridge();
+  const fetcher = useFetcher();
+  const { currentPlan } = useLoaderData();
+  const paidPlan = currentPlan !== "sandbox";
+
+  useEffect(() => {
+    if (fetcher.data?.error) {
+      shopify.toast.show(fetcher.data.error, { isError: true });
+    }
+  }, [fetcher.data, shopify]);
+
+  const submitBillingAction = (intent, values = {}) =>
+    fetcher.submit({ intent, ...values }, { method: "post" });
 
   return (
     <Page
@@ -136,20 +222,32 @@ export default function Billing() {
               <button
                 type="button"
                 className={
-                  plan.current ? styles.currentPlanButton : styles.buyButton
+                  currentPlan === plan.key
+                    ? styles.currentPlanButton
+                    : styles.buyButton
                 }
-                disabled={plan.current}
-                onClick={() =>
-                  shopify.toast.show(
-                    `${plan.name} ${billingCycle} plan selected`,
-                  )
-                }
+                disabled={currentPlan === plan.key || plan.key === "sandbox"}
+                onClick={() => submitBillingAction("purchase", {
+                  plan: plan.key,
+                  cycle: billingCycle,
+                })}
               >
-                {plan.current ? "Current Plan" : "Buy Now"}
+                {currentPlan === plan.key ? "Current Plan" : "Buy Now"}
               </button>
             </article>
           ))}
         </div>
+
+        {paidPlan && (
+          <button
+            type="button"
+            className={styles.planHelp}
+            style={{ border: 0, background: "transparent", cursor: "pointer", font: "inherit", color: "#005bd3" }}
+            onClick={() => submitBillingAction("cancel")}
+          >
+            Cancel plan / Downgrade to Sandbox
+          </button>
+        )}
 
         <p className={styles.planHelp}>
           Not sure which plan to choose? Click{" "}

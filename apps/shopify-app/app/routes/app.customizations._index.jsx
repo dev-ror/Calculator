@@ -21,6 +21,8 @@ import {
 import { ClockIcon } from "@shopify/polaris-icons";
 import { getCustomizationTypeLabel } from "../constants/shippingCustomizations";
 import { authenticate } from "../shopify.server";
+import { canUse, planLabel } from "../billing.shared";
+import { requireFeature } from "../billing.server";
 import {
   deleteCustomization,
   loadCustomizations,
@@ -98,10 +100,15 @@ function conditionSummary(condition) {
 }
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const context = await authenticate.admin(request);
+  const { session } = context;
 
   try {
-    return { customizations: await loadCustomizations(session.shop) };
+    const [customizations, { plan }] = await Promise.all([
+      loadCustomizations(session.shop),
+      requireFeature(request, "customizations", { context }),
+    ]);
+    return { customizations, plan };
   } catch {
     throw new Response("Unable to load customizations", { status: 500 });
   }
@@ -111,7 +118,7 @@ export default function CustomizationsIndex() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { customizations } = useLoaderData();
+  const { customizations, plan } = useLoaderData();
   const [pendingDelete, setPendingDelete] = useState([]);
   const {
     selectedResources,
@@ -167,6 +174,13 @@ export default function CustomizationsIndex() {
       }}
     >
       <BlockStack gap="400">
+        {!canUse(plan, "customizations") && (
+          <Banner
+            tone="warning"
+            title={`You're on ${planLabel(plan)}. Upgrade to use this in live mode.`}
+            action={{ content: "Upgrade", url: "/app/billing" }}
+          />
+        )}
         {customizations.length > 0 && (
           <Banner tone="warning" title="App is running in test mode">
             <List>

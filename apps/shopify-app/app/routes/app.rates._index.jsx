@@ -20,6 +20,8 @@ import {
 } from "@shopify/polaris";
 import { ClockIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
+import { canUse, planLabel } from "../billing.shared";
+import { requireFeature } from "../billing.server";
 import { deleteRate, loadRateData, updateRate } from "../backend.server";
 
 async function actionPayload(request) {
@@ -79,10 +81,15 @@ export const action = async ({ request }) => {
 };
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
+  const context = await authenticate.admin(request);
+  const { admin, session } = context;
 
   try {
-    return await loadRateData(session.shop, admin);
+    const [rateData, { plan }] = await Promise.all([
+      loadRateData(session.shop, admin),
+      requireFeature(request, "rates", { context }),
+    ]);
+    return { ...rateData, plan };
   } catch {
     throw new Response("Unable to load rate data", { status: 500 });
   }
@@ -111,7 +118,7 @@ export default function RatesIndex() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { rates, carrierService } = useLoaderData();
+  const { rates, carrierService, plan } = useLoaderData();
   const [pendingDelete, setPendingDelete] = useState([]);
   const {
     selectedResources,
@@ -165,6 +172,13 @@ export default function RatesIndex() {
       }}
     >
       <BlockStack gap="400">
+        {!canUse(plan, "rates") && (
+          <Banner
+            tone="warning"
+            title={`You're on ${planLabel(plan)}. Upgrade to use this in live mode.`}
+            action={{ content: "Upgrade", url: "/app/billing" }}
+          />
+        )}
    
         {!carrierService?.available && (
           <Banner

@@ -18,6 +18,7 @@ import {
   Icon,
   Modal,
   Badge,
+  Banner,
 } from "@shopify/polaris";
 import { PlusIcon, DeleteIcon, InfoIcon } from "@shopify/polaris-icons";
 import {
@@ -34,12 +35,16 @@ import {
 } from "../constants/shippingCustomizations";
 import { authenticate } from "../shopify.server";
 import { createCustomization, loadCustomizations } from "../backend.server";
+import { canUse, planLabel } from "../billing.shared";
+import { requireFeature } from "../billing.server";
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const context = await authenticate.admin(request);
+  const { session } = context;
+  const { plan } = await requireFeature(request, "customizations", { context });
   const id = new URL(request.url).searchParams.get("id");
 
-  if (!id) return { customization: null };
+  if (!id) return { customization: null, plan };
 
   try {
     const customizations = await loadCustomizations(session.shop);
@@ -49,7 +54,7 @@ export const loader = async ({ request }) => {
       throw new Response("Customization not found", { status: 404 });
     }
 
-    return { customization };
+    return { customization, plan };
   } catch (error) {
     if (error instanceof Response) throw error;
     throw new Response("Unable to load customization", { status: 500 });
@@ -242,7 +247,7 @@ export default function NewCustomization() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { customization } = useLoaderData();
+  const { customization, plan } = useLoaderData();
   const [type, setType] = useState(customization?.type ?? "hide");
   const [name, setName] = useState(customization?.name ?? "");
   const [status, setStatus] = useState(
@@ -429,6 +434,13 @@ export default function NewCustomization() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
+            {!canUse(plan, "customizations") && (
+              <Banner
+                tone="warning"
+                title={`You're on ${planLabel(plan)}. Upgrade to use this in live mode.`}
+                action={{ content: "Upgrade", url: "/app/billing" }}
+              />
+            )}
             <Card>
               <FormLayout>
                 <Select

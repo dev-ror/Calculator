@@ -49,6 +49,8 @@ import { authenticate } from "../shopify.server";
 import { createRate, loadRateData } from "../backend.server";
 import prisma from "../db.server";
 import { ensureDefaultZones } from "../zones.server";
+import { canUse, planLabel } from "../billing.shared";
+import { requireFeature } from "../billing.server";
 
 function zoneIdForStoredKey(zoneKey, zones) {
   const normalizedKey = String(zoneKey).toLowerCase();
@@ -102,8 +104,10 @@ function storedZoneRates(zoneRates) {
 }
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
+  const context = await authenticate.admin(request);
+  const { admin, session } = context;
   const id = new URL(request.url).searchParams.get("id");
+  const { plan } = await requireFeature(request, "rates", { context });
   await ensureDefaultZones(session.shop);
   const storedZones = await prisma.zone.findMany({
     where: { shopId: session.shop },
@@ -116,7 +120,7 @@ export const loader = async ({ request }) => {
     isRestOfWorld,
   }));
 
-  if (!id) return { rate: null, zones };
+  if (!id) return { rate: null, zones, plan };
 
   try {
     const { rates } = await loadRateData(session.shop, admin);
@@ -126,7 +130,7 @@ export const loader = async ({ request }) => {
       throw new Response("Rate rule not found", { status: 404 });
     }
 
-    return { rate, zones };
+    return { rate, zones, plan };
   } catch (error) {
     if (error instanceof Response) throw error;
     throw new Response("Unable to load rate rule", { status: 500 });
@@ -342,7 +346,7 @@ export default function NewShippingRateRule() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { rate, zones } = useLoaderData();
+  const { rate, zones, plan } = useLoaderData();
   const [name, setName] = useState(rate?.name ?? "");
   const [priority, setPriority] = useState(rate ? String(rate.priority) : "");
   const [status, setStatus] = useState(
@@ -688,6 +692,13 @@ export default function NewShippingRateRule() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
+            {!canUse(plan, "rates") && (
+              <Banner
+                tone="warning"
+                title={`You're on ${planLabel(plan)}. Upgrade to use this in live mode.`}
+                action={{ content: "Upgrade", url: "/app/billing" }}
+              />
+            )}
             <Card>
               <FormLayout>
                 <TextField

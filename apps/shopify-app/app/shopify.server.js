@@ -2,10 +2,34 @@ import "@shopify/shopify-app-react-router/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
+  BillingInterval,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "@calculator/database";
+
+export const BILLING_PLANS = {
+  STARTER_MONTHLY: "Starter",
+  STARTER_YEARLY: "Starter (Yearly)",
+  PRO_MONTHLY: "Pro",
+  PRO_YEARLY: "Pro (Yearly)",
+  PROPLUS_MONTHLY: "Pro+",
+  PROPLUS_YEARLY: "Pro+ (Yearly)",
+};
+
+const subscriptionPlan = (amount, interval) => ({
+  trialDays: 14,
+  lineItems: [{ amount, currencyCode: "USD", interval }],
+});
+
+const billing = {
+  [BILLING_PLANS.STARTER_MONTHLY]: subscriptionPlan(14, BillingInterval.Every30Days),
+  [BILLING_PLANS.STARTER_YEARLY]: subscriptionPlan(140, BillingInterval.Annual),
+  [BILLING_PLANS.PRO_MONTHLY]: subscriptionPlan(39, BillingInterval.Every30Days),
+  [BILLING_PLANS.PRO_YEARLY]: subscriptionPlan(390, BillingInterval.Annual),
+  [BILLING_PLANS.PROPLUS_MONTHLY]: subscriptionPlan(59, BillingInterval.Every30Days),
+  [BILLING_PLANS.PROPLUS_YEARLY]: subscriptionPlan(590, BillingInterval.Annual),
+};
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -15,6 +39,7 @@ const shopify = shopifyApp({
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
+  billing,
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,

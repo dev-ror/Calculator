@@ -1,6 +1,7 @@
 import { pipeline, services, validators } from "@calculator/backend";
 import { ensureCarrierService as ensureShopifyCarrierService } from "./carrier-service.server";
 import { unauthenticated } from "./shopify.server";
+import { canUse, getPlan } from "./billing.server";
 
 const SYNC_FUNCTION_CONFIGURATION_MUTATION = `#graphql
   mutation SyncFunctionConfiguration($metafields: [MetafieldsSetInput!]!) {
@@ -67,12 +68,18 @@ export async function syncFunctionConfiguration(shopId, { asOf = new Date() } = 
       shopId,
       async ({ shop, configuration }) => {
         let admin;
+        let session;
 
         try {
-          ({ admin } = await unauthenticated.admin(shop.shopDomain));
+          ({ admin, session } = await unauthenticated.admin(shop.shopDomain));
         } catch {
           throw new Error("Shopify authentication is unavailable");
         }
+
+        const plan = await getPlan(admin, session);
+        const configurationObject = JSON.parse(configuration);
+        configurationObject.testMode =
+          configurationObject.testMode || !canUse(plan, "customizations");
 
         const owner =
           await services.DeliveryCustomizationOwnerService.ensureDeliveryCustomizationOwner(
@@ -94,7 +101,7 @@ export async function syncFunctionConfiguration(shopId, { asOf = new Date() } = 
                   namespace: "$app:delivery-customization",
                   key: "function-configuration",
                   type: "json",
-                  value: configuration,
+                  value: JSON.stringify(configurationObject),
                 },
               ],
             },
@@ -206,9 +213,24 @@ export async function findRatesByShop(shopDomain) {
   return services.RateService.findRatesByShop(shopId);
 }
 
+function isCustomCodeRate(rate) {
+  return /custom[\s_-]*cod(?:e|ed)/i.test(String(rate.calculation ?? ""));
+}
+
+async function enforceCustomCodePlan(shopDomain, definitions) {
+  if (!definitions.some(isCustomCodeRate)) return;
+
+  const { admin, session } = await unauthenticated.admin(shopDomain);
+  const plan = await getPlan(admin, session);
+  if (!canUse(plan, "customCode")) {
+    throw new TypeError("Custom coded shipping rates require the Pro+ plan.");
+  }
+}
+
 export async function createRate(shopDomain, data, admin) {
   const shop = await ensureShop(shopDomain);
-  validators.RateValidator.validateRate({ ...data, shopId: shop.id });
+  const validated = validators.RateValidator.validateRate({ ...data, shopId: shop.id });
+  await enforceCustomCodePlan(shopDomain, validated.definitions);
 
   const rate = await services.RateService.createRate({ ...data, shopId: shop.id });
   await ensureCarrierService(shopDomain, admin).catch(() => null);
@@ -218,7 +240,8 @@ export async function createRate(shopDomain, data, admin) {
 
 export async function updateRate(shopDomain, id, data, admin) {
   const shop = await ensureShop(shopDomain);
-  validators.RateValidator.validateRate({ ...data, shopId: shop.id });
+  const validated = validators.RateValidator.validateRate({ ...data, shopId: shop.id });
+  await enforceCustomCodePlan(shopDomain, validated.definitions);
 
   const rate = await services.RateService.updateRate(id, shop.id, data);
   await ensureCarrierService(shopDomain, admin).catch(() => null);

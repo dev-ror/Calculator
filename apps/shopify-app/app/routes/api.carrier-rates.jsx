@@ -11,6 +11,7 @@ import {
 import { unauthenticated } from "../shopify.server";
 import prisma from "../db.server";
 import { matchZone } from "../zones.server";
+import { canUse, getPlan } from "../billing.server";
 
 const responseHeaders = {
   "Cache-Control": "no-store",
@@ -39,6 +40,9 @@ export const action = async ({ request }) => {
       ensureShop(shopDomain),
       unauthenticated.admin(shopDomain),
     ]);
+    const plan = await getPlan(unauthenticatedContext.admin, unauthenticatedContext.session);
+    if (!canUse(plan, "rates")) return emptyRates();
+
     const mappedRequest = await mapCarrierRequest(
       unauthenticatedContext.admin,
       payload,
@@ -58,7 +62,10 @@ export const action = async ({ request }) => {
     const result = await executeShippingPipeline(mappedRequest);
 
     return Response.json(
-      formatCarrierResponse(filterRatesForZone(result, matchedZone), mappedRequest),
+      formatCarrierResponse(
+        filterRatesForZone(result, matchedZone, canUse(plan, "customCode")),
+        mappedRequest,
+      ),
       { headers: responseHeaders },
     );
   } catch {
