@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.js"
   },
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@calculator/database": "*"
   },

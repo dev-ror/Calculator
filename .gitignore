@@ -10,10 +10,6 @@ node_modules
 /apps/shopify-app/build
 /apps/shopify-app/public/build/
 /apps/shopify-app/public/_dev
-/apps/shopify-app/prisma/dev.sqlite
-/apps/shopify-app/prisma/dev.sqlite-journal
-database.sqlite
-
 .env
 .env.*
 

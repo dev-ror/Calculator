@@ -5,6 +5,7 @@
     "input": {
       "cart": {
         "buyerIdentity": {
+          "isAuthenticated": true,
           "customer": {
             "hasTags": [
               {
@@ -12,7 +13,8 @@
                 "hasTag": true
               }
             ]
-          }
+          },
+          "purchasingCompany": null
         },
         "cost": {
           "subtotalAmount": {
@@ -22,9 +24,20 @@
         "lines": [
           {
             "quantity": 2,
+            "cost": {
+              "amountPerQuantity": { "amount": "37.50" },
+              "subtotalAmount": { "amount": "75.00" }
+            },
+            "sellingPlanAllocation": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "sku": "ELITE-1",
+              "title": "Default Title",
+              "weight": 1.5,
               "product": {
+                "title": "Elite Product",
+                "productType": "Snowboard",
+                "vendor": "Hydrogen Vendor",
                 "hasTags": [
                   {
                     "tag": "elite",
@@ -37,8 +50,10 @@
         ],
         "deliveryGroups": [
           {
+            "groupType": "ONE_TIME_PURCHASE",
             "deliveryAddress": {
               "firstName": "shipmagic",
+              "address1": "123 Main Street",
               "countryCode": "US",
               "provinceCode": "NY",
               "zip": "10001"
@@ -46,7 +61,8 @@
             "deliveryOptions": [
               {
                 "handle": "express-handle",
-                "title": "Express"
+                "title": "Express",
+                "cost": { "amount": "15.00" }
               }
             ]
           }

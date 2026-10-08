@@ -9,8 +9,8 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:../../../apps/shopify-app/prisma/dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
@@ -216,4 +216,16 @@ model RateDefinition {
 
   @@unique([rateRuleId, position])
   @@index([shopId, zoneKey])
+}
+
+model Zone {
+  id            String   @id @default(cuid())
+  shopId        String
+  name          String
+  isRestOfWorld Boolean  @default(false)
+  regions       Json
+  countries     String   @default("")
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
 }

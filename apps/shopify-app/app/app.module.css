@@ -75,10 +75,14 @@
 
 /* Billing Page */
 .billingPage {
-  max-width: 900px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 0 54px;
   color: #303030;
+}
+:global(.Polaris-Page--fullWidth) {
+  max-width: 1400px !important;
+  margin: 0 auto;
 }
 .billingToggle {
   width: 220px;
@@ -110,7 +114,7 @@
 }
 .pricingGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 28px;
 }
 .pricingCard {

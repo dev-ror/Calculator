@@ -54,6 +54,31 @@ const textProductFields = new Set([
 
 const numericProductFields = new Set(["Product Weight", "Product Price"]);
 
+export const unsupportedCheckoutConditionFields = new Set([
+  "Cart Attribute",
+  "Line Item Property",
+  "Product Collection",
+  "Variant Metafield",
+  "Customer Metafield",
+  "Company Metafield",
+  "Company Location Metafield",
+]);
+
+const textOperators = [
+  "Equals",
+  "Not equals",
+  "Contains",
+  "Does not contains",
+  "Starts with",
+  "Ends with",
+];
+
+const textAndListOperators = [
+  ...textOperators,
+  "Includes in list",
+  "Not includes in list",
+];
+
 export const hasProductMatchOptions = (field) => productFields.has(field);
 
 export const getConditionOperators = (field, parameterSet) => {
@@ -71,14 +96,7 @@ export const getConditionOperators = (field, parameterSet) => {
   }
 
   if (field === "SKU" || field === "Province / State Code") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
+    return textAndListOperators;
   }
 
   if (field === "Variant Metafield") {
@@ -128,18 +146,11 @@ export const getConditionOperators = (field, parameterSet) => {
   if (field === "Zipcode / Postcode") return ["Equals", "Not equals"];
 
   if (field === "Country Code") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
+    return textAndListOperators;
   }
 
   if (field === "Address Line 1" || field === "Shipping Method Name") {
-    return ["Contains", "Does not contains"];
+    return textOperators;
   }
 
   if (field === "Shipping Rate" || field === "Number Of Vendors") {
@@ -149,31 +160,17 @@ export const getConditionOperators = (field, parameterSet) => {
   if (field === "Customer Logged In") return ["True", "False"];
 
   if (field === "Customer Company") {
-    return ["Contains", "Does not contains", "Is empty", "Is not empty"];
+    return [...textOperators, "Is empty", "Is not empty"];
   }
 
   if (field === "Customer First Name") {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
+    return textAndListOperators;
   }
 
   if (field === "Customer Tag") return ["Equals", "Not equals"];
 
   if (textProductFields.has(field)) {
-    return [
-      "Equals",
-      "Not equals",
-      "Contains",
-      "Does not contains",
-      "Includes in list",
-      "Not includes in list",
-    ];
+    return textAndListOperators;
   }
 
   if (field === "Line Item Property") {
@@ -222,10 +219,20 @@ export const getDefaultConditionOperator = (field) => {
 };
 
 export const getCustomizationActionLabel = (type) => {
-  if (type === "Hide shipping rates") {
+  const normalizedType = String(type || "").trim().toLowerCase();
+  if (normalizedType === "hide" || normalizedType === "hide shipping rates") {
     return "Hide the following shipping methods";
   }
-  if (type === "Rename shipping rates") {
+  if (normalizedType === "show" || normalizedType === "show shipping rates") {
+    return "Show the following shipping methods";
+  }
+  if (
+    normalizedType === "only_show" ||
+    normalizedType === "only show specified shipping rates and hide rest"
+  ) {
+    return "Only show the following shipping methods and hide the rest";
+  }
+  if (normalizedType === "rename" || normalizedType === "rename shipping rates") {
     return "Rename the following shipping methods";
   }
   return "Reorder the following shipping methods";

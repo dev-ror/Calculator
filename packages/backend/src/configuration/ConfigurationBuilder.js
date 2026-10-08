@@ -10,11 +10,53 @@ function orderedChildren(items = []) {
   return [...items].sort(byPosition);
 }
 
-function orderedCustomizations(customizations = []) {
+function scheduleInstant(schedule) {
+  const instant = new Date(schedule?.scheduledAt).getTime();
+  return Number.isFinite(instant) ? instant : null;
+}
+
+function byScheduleTime(left, right) {
+  return (
+    scheduleInstant(left) - scheduleInstant(right) ||
+    byPosition(left, right)
+  );
+}
+
+export function resolveEffectiveStatus(customization, asOf) {
+  const effectiveAt = new Date(asOf).getTime();
+
+  if (!Number.isFinite(effectiveAt)) {
+    throw new TypeError("Effective configuration time must be a valid date");
+  }
+
+  const lastDueSchedule = [...(customization.schedules ?? [])]
+    .filter((schedule) => {
+      const instant = scheduleInstant(schedule);
+      const action = String(schedule?.action ?? "").toUpperCase();
+      return (
+        instant !== null &&
+        instant <= effectiveAt &&
+        (action === "ACTIVATE" || action === "DEACTIVATE")
+      );
+    })
+    .sort(byScheduleTime)
+    .at(-1);
+
+  if (!lastDueSchedule) {
+    return customization.status;
+  }
+
+  return String(lastDueSchedule.action).toUpperCase() === "ACTIVATE"
+    ? "ACTIVE"
+    : "INACTIVE";
+}
+
+function orderedCustomizations(customizations = [], asOf) {
   return [...customizations]
     .sort((left, right) => compareValues(left.id, right.id))
     .map((customization) => ({
       ...customization,
+      status: resolveEffectiveStatus(customization, asOf),
       conditions: orderedChildren(customization.conditions),
       methods: orderedChildren(customization.methods).map((method) => ({
         ...method,
@@ -64,7 +106,7 @@ function conditionTags(customizations = [], expectedField) {
   ].sort(compareValues);
 }
 
-export function build({ shop, customizations, rateRules }) {
+export function build({ shop, customizations, rateRules, asOf = new Date() }) {
   if (!shop) {
     throw new TypeError("Shop was not found");
   }
@@ -74,7 +116,7 @@ export function build({ shop, customizations, rateRules }) {
     testMode: shop.configuration?.customizationsEnabled !== true,
     customerTags: conditionTags(customizations, "customer_tag"),
     productTags: conditionTags(customizations, "product_tag"),
-    customizations: orderedCustomizations(customizations),
+    customizations: orderedCustomizations(customizations, asOf),
     rateRules: orderedRateRules(rateRules),
   };
 }

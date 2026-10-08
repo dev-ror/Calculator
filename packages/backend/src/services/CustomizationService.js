@@ -27,6 +27,10 @@ export function findCustomizationsByShop(shopId) {
   return repositories.customizations.findCustomizationsByShop(shopId);
 }
 
+export function findShopIdsWithDueCustomizationSchedules(asOf) {
+  return repositories.customizations.findShopIdsWithDueCustomizationSchedules(asOf);
+}
+
 export function updateCustomization(id, shopId, data) {
   const validated = validateCustomization({ ...data, shopId });
   const {

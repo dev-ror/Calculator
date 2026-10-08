@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "Zone_one_row_per_shop" ON "Zone"("shopId") WHERE "isRestOfWorld" = true;
