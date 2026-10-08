@@ -6,7 +6,11 @@ import * as ShopService from "./ShopService.js";
 import * as CustomizationService from "./CustomizationService.js";
 import * as RateService from "./RateService.js";
 
-export async function syncFunctionConfiguration(shopId, writeConfiguration) {
+export async function syncFunctionConfiguration(
+  shopId,
+  writeConfiguration,
+  { asOf = new Date() } = {},
+) {
   if (typeof writeConfiguration !== "function") {
     throw new TypeError("Function configuration writer is required");
   }
@@ -21,6 +25,7 @@ export async function syncFunctionConfiguration(shopId, writeConfiguration) {
     shop,
     customizations,
     rateRules,
+    asOf,
   });
 
   const configuration = ConfigurationSerializer.serialize(configurationObject);

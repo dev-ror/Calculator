@@ -5,10 +5,10 @@ CREATE TABLE "CustomizationSchedule" (
     "customizationId" TEXT NOT NULL,
     "position" INTEGER NOT NULL,
     "action" TEXT NOT NULL,
-    "scheduledAt" DATETIME NOT NULL,
+    "scheduledAt" TIMESTAMP(3) NOT NULL,
     "timezone" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "CustomizationSchedule_customizationId_shopId_fkey" FOREIGN KEY ("customizationId", "shopId") REFERENCES "Customization" ("id", "shopId") ON DELETE CASCADE ON UPDATE CASCADE
 );
 

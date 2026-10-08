@@ -71,6 +71,17 @@ const CONDITION_FIELDS = {
     "Zipcode / Postcode",
   ]),
 };
+const OPERATORLESS_FIELDS = new Set([
+  "Address is a PO Box",
+  "Address is not a PO Box",
+  "Always",
+]);
+const VALUELESS_FIELDS = new Set([
+  ...OPERATORLESS_FIELDS,
+  "Customer Logged In",
+  "Is subscription product",
+]);
+const VALUELESS_OPERATORS = new Set(["is empty", "is not empty", "true", "false"]);
 
 function requireObject(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -174,14 +185,45 @@ function validateConditions(conditionsBySet, parameterSet) {
       );
     }
 
+    const operator = optionalString(
+      condition.operator,
+      `conditions[${position}].operator`,
+      100,
+    );
+    const value = optionalString(condition.value, `conditions[${position}].value`);
+    const matchValue = optionalString(
+      condition.matchValue,
+      `conditions[${position}].matchValue`,
+    );
+
+    if (!OPERATORLESS_FIELDS.has(field) && !operator) {
+      throw new TypeError(`conditions[${position}].operator is required`);
+    }
+
+    if (
+      !VALUELESS_FIELDS.has(field) &&
+      !VALUELESS_OPERATORS.has(String(operator).toLowerCase()) &&
+      !value
+    ) {
+      throw new TypeError(`conditions[${position}].value is required`);
+    }
+
+    if (
+      productMatch &&
+      !["at-least-one", "all-products"].includes(productMatch) &&
+      !matchValue
+    ) {
+      throw new TypeError(`conditions[${position}].matchValue is required`);
+    }
+
     return {
       position,
       field,
-      operator: optionalString(condition.operator, `conditions[${position}].operator`, 100),
+      operator,
       key: optionalString(condition.key, `conditions[${position}].key`),
-      value: optionalString(condition.value, `conditions[${position}].value`),
+      value,
       productMatch,
-      matchValue: optionalString(condition.matchValue, `conditions[${position}].matchValue`),
+      matchValue,
     };
   });
 }

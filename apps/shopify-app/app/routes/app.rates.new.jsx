@@ -47,12 +47,76 @@ import {
 } from "../constants/shippingRates";
 import { authenticate } from "../shopify.server";
 import { createRate, loadRateData } from "../backend.server";
+import prisma from "../db.server";
+import { ensureDefaultZones } from "../zones.server";
+
+function zoneIdForStoredKey(zoneKey, zones) {
+  const normalizedKey = String(zoneKey).toLowerCase();
+  if (normalizedKey === "domestic") {
+    return zones.find((zone) => zone.name === "Domestic" && !zone.isRestOfWorld)?.id ?? null;
+  }
+  if (normalizedKey === "international") {
+    return zones.find((zone) => zone.isRestOfWorld)?.id ?? null;
+  }
+  return zones.find((zone) => zone.id === zoneKey)?.id ?? null;
+}
+
+function groupStoredRates(definitions, zones) {
+  return definitions.reduce((grouped, definition) => {
+    const zoneId = zoneIdForStoredKey(definition.zoneKey, zones);
+    const groupKey = zoneId ?? definition.zoneKey;
+    const zoneRates = grouped[groupKey] ?? [];
+    zoneRates.push({
+      ...blankRate(),
+      name: definition.name,
+      calculation: definition.calculation,
+      price: definition.price === null ? "" : String(definition.price),
+      description: definition.description ?? "",
+      minimumDays:
+        definition.minimumDays === null ? "" : String(definition.minimumDays),
+      maximumDays:
+        definition.maximumDays === null ? "" : String(definition.maximumDays),
+      tags: definition.tags ?? "",
+      currency:
+        Object.keys(currencyCodes).find(
+          (label) => currencyCodes[label] === definition.currencyCode,
+        ) ?? "Default Store Currency",
+      status: definition.status,
+      persistedZoneKey: definition.zoneKey,
+    });
+    grouped[groupKey] = zoneRates;
+    return grouped;
+  }, {});
+}
+
+function storedZoneRates(zoneRates) {
+  return Object.entries(zoneRates).reduce((stored, [zoneKey, rates]) => {
+    for (const rate of rates) {
+      const storedKey = rate.persistedZoneKey ?? zoneKey;
+      const definition = { ...rate };
+      delete definition.persistedZoneKey;
+      (stored[storedKey] ??= []).push(definition);
+    }
+    return stored;
+  }, {});
+}
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   const id = new URL(request.url).searchParams.get("id");
+  await ensureDefaultZones(session.shop);
+  const storedZones = await prisma.zone.findMany({
+    where: { shopId: session.shop },
+    orderBy: { createdAt: "asc" },
+  });
+  storedZones.sort((left, right) => Number(left.isRestOfWorld) - Number(right.isRestOfWorld));
+  const zones = storedZones.map(({ id: zoneId, name, isRestOfWorld }) => ({
+    id: zoneId,
+    name,
+    isRestOfWorld,
+  }));
 
-  if (!id) return { rate: null };
+  if (!id) return { rate: null, zones };
 
   try {
     const { rates } = await loadRateData(session.shop, admin);
@@ -62,7 +126,7 @@ export const loader = async ({ request }) => {
       throw new Response("Rate rule not found", { status: 404 });
     }
 
-    return { rate };
+    return { rate, zones };
   } catch (error) {
     if (error instanceof Response) throw error;
     throw new Response("Unable to load rate rule", { status: 500 });
@@ -278,7 +342,7 @@ export default function NewShippingRateRule() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { rate } = useLoaderData();
+  const { rate, zones } = useLoaderData();
   const [name, setName] = useState(rate?.name ?? "");
   const [priority, setPriority] = useState(rate ? String(rate.priority) : "");
   const [status, setStatus] = useState(
@@ -292,33 +356,7 @@ export default function NewShippingRateRule() {
       : [blankCondition()],
   );
   const [zoneRates, setZoneRates] = useState(() =>
-    (rate?.rates ?? []).reduce(
-      (zones, definition) => {
-        const zone = zones[definition.zoneKey] ?? [];
-        zones[definition.zoneKey] = [
-          ...zone,
-          {
-          ...blankRate(),
-          name: definition.name,
-          calculation: definition.calculation,
-          price: definition.price === null ? "" : String(definition.price),
-          description: definition.description ?? "",
-          minimumDays:
-            definition.minimumDays === null ? "" : String(definition.minimumDays),
-          maximumDays:
-            definition.maximumDays === null ? "" : String(definition.maximumDays),
-          tags: definition.tags ?? "",
-          currency:
-            Object.keys(currencyCodes).find(
-              (label) => currencyCodes[label] === definition.currencyCode,
-            ) ?? "Default Store Currency",
-          status: definition.status,
-          },
-        ];
-        return zones;
-      },
-      { Domestic: [], International: [] },
-    ),
+    groupStoredRates(rate?.rates ?? [], zones),
   );
   const [activeZone, setActiveZone] = useState(null);
   const [activeRateIndex, setActiveRateIndex] = useState(null);
@@ -560,7 +598,7 @@ export default function NewShippingRateRule() {
       conditionMatch: match,
       exclusivity,
       conditions,
-      zoneRates,
+      zoneRates: storedZoneRates(zoneRates),
       schedules,
     };
     fetcher.submit(
@@ -988,21 +1026,21 @@ export default function NewShippingRateRule() {
                 <Text as="h2" variant="headingMd">
                   Shipping zones
                 </Text>
-                {["Domestic", "International"].map((zone) => (
-                  <Card key={zone} background="bg-surface-secondary">
+                {zones.map((zone) => (
+                  <Card key={zone.id} background="bg-surface-secondary">
                     <BlockStack gap="300">
                       <InlineStack align="space-between" blockAlign="center">
                         <Text as="h3" variant="headingSm">
-                          {zone}
+                          {zone.name}
                         </Text>
                         <Button
                           variant="plain"
-                          onClick={() => openRateModal(zone)}
+                          onClick={() => openRateModal(zone.id)}
                         >
                           Add rate
                         </Button>
                       </InlineStack>
-                      {(zoneRates[zone] ?? []).length === 0 ? (
+                      {(zoneRates[zone.id] ?? []).length === 0 ? (
                         <Banner tone="warning">
                           No rates. Customers in this zone won&apos;t see
                           shipping rates from ShipMagic app.
@@ -1017,8 +1055,8 @@ export default function NewShippingRateRule() {
                               <Box minWidth="32px" />
                             </InlineGrid>
                           </Box>
-                          {(zoneRates[zone] ?? []).map((shippingRate, rateIndex) => {
-                            const menuKey = `${zone}-${rateIndex}`;
+                          {(zoneRates[zone.id] ?? []).map((shippingRate, rateIndex) => {
+                            const menuKey = `${zone.id}-${rateIndex}`;
 
                             return (
                               <Box key={menuKey} paddingBlock="300">
@@ -1048,12 +1086,12 @@ export default function NewShippingRateRule() {
                                       items={[
                                         {
                                           content: "Edit",
-                                          onAction: () => openRateModal(zone, rateIndex),
+                                          onAction: () => openRateModal(zone.id, rateIndex),
                                         },
                                         {
                                           content: "Delete",
                                           destructive: true,
-                                          onAction: () => removeZoneRate(zone, rateIndex),
+                                          onAction: () => removeZoneRate(zone.id, rateIndex),
                                         },
                                       ]}
                                     />

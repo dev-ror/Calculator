@@ -4,10 +4,13 @@ import {
 } from "../backend.server";
 import {
   formatCarrierResponse,
+  filterRatesForZone,
   mapCarrierRequest,
   verifyCarrierCallback,
 } from "../carrier-service.server";
 import { unauthenticated } from "../shopify.server";
+import prisma from "../db.server";
+import { matchZone } from "../zones.server";
 
 const responseHeaders = {
   "Cache-Control": "no-store",
@@ -41,11 +44,23 @@ export const action = async ({ request }) => {
       payload,
       shop.id,
     );
+    const zones = await prisma.zone.findMany({
+      where: { shopId: shopDomain },
+      orderBy: { createdAt: "asc" },
+    });
+    const matchedZone = matchZone(
+      zones,
+      String(mappedRequest.destination?.countryCode ?? "").toUpperCase(),
+      String(mappedRequest.destination?.provinceCode ?? "").toUpperCase(),
+    );
+    if (!matchedZone) return emptyRates();
+
     const result = await executeShippingPipeline(mappedRequest);
 
-    return Response.json(formatCarrierResponse(result, mappedRequest), {
-      headers: responseHeaders,
-    });
+    return Response.json(
+      formatCarrierResponse(filterRatesForZone(result, matchedZone), mappedRequest),
+      { headers: responseHeaders },
+    );
   } catch {
     return emptyRates();
   }

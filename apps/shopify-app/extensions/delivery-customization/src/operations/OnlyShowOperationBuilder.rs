@@ -39,18 +39,18 @@ pub fn build(
 }
 
 fn visible_method_names(customizations: &[Customization]) -> Option<Vec<String>> {
-    let mut has_only_show_customization = false;
+    let mut has_visibility_customization = false;
     let mut seen = BTreeSet::new();
     let mut visible_names = Vec::new();
 
     for customization in customizations {
-        if !customization.status.eq_ignore_ascii_case("ACTIVE")
-            || !customization.r#type.eq_ignore_ascii_case("ONLY_SHOW")
-        {
+        let is_visibility_type = customization.r#type.eq_ignore_ascii_case("ONLY_SHOW")
+            || customization.r#type.eq_ignore_ascii_case("SHOW");
+        if !customization.status.eq_ignore_ascii_case("ACTIVE") || !is_visibility_type {
             continue;
         }
 
-        has_only_show_customization = true;
+        has_visibility_customization = true;
 
         for method in &customization.methods {
             let visible_name = method.value.trim();
@@ -65,7 +65,7 @@ fn visible_method_names(customizations: &[Customization]) -> Option<Vec<String>>
         }
     }
 
-    has_only_show_customization.then_some(visible_names)
+    has_visibility_customization.then_some(visible_names)
 }
 
 #[cfg(test)]
@@ -153,6 +153,41 @@ mod tests {
         assert_eq!(
             hidden_delivery_options(&customizations, &delivery_options(), &BTreeSet::new()),
             vec!["standard", "economy", "pickup"]
+        );
+    }
+
+    #[test]
+    fn show_keeps_matching_methods_and_hides_the_rest() {
+        let customizations = vec![customization("show", "ACTIVE", "SHOW", &[" Express "])];
+
+        assert_eq!(
+            hidden_delivery_options(&customizations, &delivery_options(), &BTreeSet::new()),
+            vec!["standard", "economy", "pickup"]
+        );
+    }
+
+    #[test]
+    fn inactive_show_does_not_generate_operations() {
+        let customizations = vec![customization("show", "INACTIVE", "SHOW", &["Express"])];
+
+        assert!(
+            hidden_delivery_options(&customizations, &delivery_options(), &BTreeSet::new())
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn show_ignores_blank_and_unknown_methods_deterministically() {
+        let customizations = vec![customization(
+            "show",
+            "ACTIVE",
+            "SHOW",
+            &["", "Unknown", "PICKUP", "pickup"],
+        )];
+
+        assert_eq!(
+            hidden_delivery_options(&customizations, &delivery_options(), &BTreeSet::new()),
+            vec!["standard", "express", "economy"]
         );
     }
 
