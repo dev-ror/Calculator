@@ -2,7 +2,7 @@
   "name": "@calculator/shopify-app",
   "private": true,
   "scripts": {
-    "build": "react-router build",
+    "build": "npm --prefix ../.. run database:generate && react-router build",
     "dev": "shopify app dev --use-localhost --install-mkcert",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",

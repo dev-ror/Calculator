@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
+    "build": "npm run database:generate && turbo run build",
     "dev": "shopify app dev --path apps/shopify-app --use-localhost --install-mkcert",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",

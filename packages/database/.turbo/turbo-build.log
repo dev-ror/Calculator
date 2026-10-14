@@ -12,7 +12,7 @@ npm warn Unknown project config "shamefully-hoist". This will stop working in th
 Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
 
-✔ Generated Prisma Client (v6.19.3) to ./../../node_modules/@prisma/client in 128ms
+✔ Generated Prisma Client (v6.19.3) to ./../../node_modules/@prisma/client in 138ms
 
 Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
 
