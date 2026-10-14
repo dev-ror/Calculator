@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "shopify app dev --path apps/shopify-app",
+    "dev": "shopify app dev --path apps/shopify-app --use-localhost --install-mkcert",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "shopify": "shopify --path apps/shopify-app",
