@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useFetcher, useNavigate } from "react-router";
 import {
   Page,
   Card,
@@ -17,9 +17,93 @@ import SelectConfigurationStep from "../components/clone-store/SelectConfigurati
 import MapZonesStep from "../components/clone-store/MapZonesStep";
 import ConfirmStep from "../components/clone-store/ConfirmStep";
 import CompleteStep from "../components/clone-store/CompleteStep";
+import prisma from "../db.server";
+import { authenticate } from "../shopify.server";
+import { ensureShop, syncFunctionConfiguration } from "../backend.server";
+import { hashApiSecret } from "../settings-secret.server";
+import { entitlementsFor } from "../plans.server";
+
+export async function loader({ request }) {
+  await authenticate.admin(request);
+  return null;
+}
+
+export async function action({ request }) {
+  const { session } = await authenticate.admin(request);
+  const destinationShop = await ensureShop(session.shop);
+  const data = await request.formData();
+  const secret = String(data.get("secret") ?? "");
+  const sourceConfiguration = await prisma.shopConfiguration.findUnique({
+    where: { apiSecretHash: hashApiSecret(secret) },
+    include: { shop: true },
+  });
+  if (!sourceConfiguration || sourceConfiguration.shopId === destinationShop.id) {
+    return { ok: false, error: "Source store secret is invalid." };
+  }
+  if (data.get("intent") === "validate") return { ok: true, intent: "validate" };
+
+  let selected;
+  try {
+    selected = JSON.parse(String(data.get("selected") ?? "[]"));
+  } catch {
+    return { ok: false, error: "Invalid clone configuration selection." };
+  }
+  if (!Array.isArray(selected) || !selected.length) return { ok: false, error: "Select at least one configuration." };
+  const source = await prisma.shop.findUnique({
+    where: { id: sourceConfiguration.shopId },
+    include: {
+      customizations: { include: { conditions: true, methods: true, schedules: true } },
+      rateRules: { include: { conditions: true, rates: true, schedules: true } },
+    },
+  });
+  const destinationConfiguration = await prisma.shopConfiguration.findUnique({ where: { shopId: destinationShop.id } });
+  if (!source) return { ok: false, error: "Source store is unavailable." };
+  const permissions = entitlementsFor(destinationConfiguration?.plan);
+
+  await prisma.$transaction(async (tx) => {
+    if (selected.includes("customizations")) {
+      await tx.customization.deleteMany({ where: { shopId: destinationShop.id } });
+      for (const item of source.customizations) {
+        await tx.customization.create({ data: {
+          shopId: destinationShop.id, name: item.name, type: item.type, status: item.status,
+          parameterSet: item.parameterSet, conditionMatch: item.conditionMatch, shipmentScope: item.shipmentScope,
+          conditions: { create: item.conditions.map(({ position, field, operator, key, value, productMatch, matchValue }) => ({ shopId: destinationShop.id, position, field, operator, key, value, productMatch, matchValue })) },
+          methods: { create: item.methods.map(({ position, value, replacementValue }) => ({ shopId: destinationShop.id, position, value, replacementValue })) },
+          schedules: { create: item.schedules.map(({ position, action, scheduledAt, timezone }) => ({ shopId: destinationShop.id, position, action, scheduledAt, timezone })) },
+        } });
+      }
+    }
+    if (selected.includes("rates")) {
+      await tx.rateRule.deleteMany({ where: { shopId: destinationShop.id } });
+      for (const item of source.rateRules) {
+        await tx.rateRule.create({ data: {
+          shopId: destinationShop.id, name: item.name, priority: item.priority, status: item.status,
+          conditionMatch: item.conditionMatch, exclusivity: item.exclusivity,
+          conditions: { create: item.conditions.map(({ position, field, subfield, key, operator, value, quantityCheck, quantityValue }) => ({ shopId: destinationShop.id, position, field, subfield, key, operator, value, quantityCheck, quantityValue })) },
+          rates: { create: item.rates.map(({ position, zoneKey, name, calculation, price, description, minimumDays, maximumDays, tags, currencyCode, status }) => ({ shopId: destinationShop.id, position, zoneKey, name, calculation, price, description, minimumDays, maximumDays, tags, currencyCode, status })) },
+          schedules: { create: item.schedules.map(({ position, action, scheduledAt, timezone }) => ({ shopId: destinationShop.id, position, action, scheduledAt, timezone })) },
+        } });
+      }
+    }
+    if (selected.includes("settings")) {
+      await tx.shopConfiguration.update({ where: { shopId: destinationShop.id }, data: {
+        shippingRatesEnabled: permissions.shippingRatesLive && sourceConfiguration.shippingRatesEnabled,
+        customizationsEnabled: permissions.customizationsLive && sourceConfiguration.customizationsEnabled,
+        autoProductSyncEnabled: sourceConfiguration.autoProductSyncEnabled,
+        blendMode: sourceConfiguration.blendMode,
+        contactEmail: sourceConfiguration.contactEmail,
+        basicBlendLimits: sourceConfiguration.basicBlendLimits,
+        advancedBlendRules: sourceConfiguration.advancedBlendRules,
+      } });
+    }
+  });
+  if (selected.includes("customizations") || selected.includes("settings")) await syncFunctionConfiguration(destinationShop.id);
+  return { ok: true, intent: "clone" };
+}
 
 export default function CloneStoreSetupPage() {
   const navigate = useNavigate();
+  const fetcher = useFetcher();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState("");
@@ -52,7 +136,8 @@ export default function CloneStoreSetupPage() {
           setError("Please enter a source store secret.");
           return;
         }
-        break;
+        fetcher.submit({ intent: "validate", secret: sourceSecret }, { method: "post" });
+        return;
 
       case 1:
         if (selectedConfigurations.length === 0) {
@@ -66,8 +151,8 @@ export default function CloneStoreSetupPage() {
         break;
 
       case 3:
-        // Confirmation step
-        break;
+        fetcher.submit({ intent: "clone", secret: sourceSecret, selected: JSON.stringify(selectedConfigurations) }, { method: "post" });
+        return;
 
       default:
         break;
@@ -76,13 +161,16 @@ export default function CloneStoreSetupPage() {
     if (currentStep < steps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      console.log("Clone completed");
-
-      // TODO:
-      // Submit API request
-      // navigate("/app/settings");
+      navigate("/app/settings");
     }
   };
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    if (!fetcher.data.ok) { setError(fetcher.data.error); return; }
+    if (fetcher.data.intent === "validate") setCurrentStep(1);
+    if (fetcher.data.intent === "clone") setCurrentStep(4);
+  }, [fetcher.data, fetcher.state]);
 
   const handleBack = () => {
     setError("");
@@ -185,6 +273,7 @@ export default function CloneStoreSetupPage() {
                 <Button
                   variant="primary"
                   onClick={handleContinue}
+                  loading={fetcher.state !== "idle"}
                 >
                   {currentStep === steps.length - 1
                     ? "Finish"

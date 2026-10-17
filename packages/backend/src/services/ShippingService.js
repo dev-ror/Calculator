@@ -25,7 +25,10 @@ export async function evaluateShippingRules(shopId, request) {
     throw new TypeError("Shop was not found");
   }
 
-  return evaluate({ shop, customizations, rateRules, request });
+  return {
+    ...evaluate({ shop, customizations, rateRules, request }),
+    configuration: shop.configuration,
+  };
 }
 
 export async function calculateShipping(shopId, request) {

@@ -2,14 +2,14 @@ import { Page, Card, IndexTable, Text } from "@shopify/polaris";
 import { useLoaderData, useNavigate } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { REGION_MAP } from "../constants/regions";
-import { ensureDefaultZones } from "../zones.server";
+import { ensureDefaultZones, getShopZoneDefaults } from "../zones.server";
 import { ensureShop } from "../backend.server";
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop);
-  await ensureDefaultZones(shop.id);
+  const shopDefaults = await getShopZoneDefaults(admin);
+  await ensureDefaultZones(shop.id, shopDefaults);
 
   const zones = await prisma.zone.findMany({
     where: { shopId: shop.id },
@@ -23,13 +23,19 @@ export const loader = async ({ request }) => {
     zones: zones.map((z) => ({
       id: z.id,
       name: z.name,
-      summary: z.isRestOfWorld ? "Rest of world" : summarize(z.regions),
+      summary: z.isRestOfWorld
+        ? "Rest of world"
+        : summarize(z.regions, shopDefaults.locale),
     })),
   };
 };
 
-function summarize(regions) {
-  const names = Object.keys(regions || {}).map((c) => REGION_MAP[c]?.name).filter(Boolean);
+function summarize(regions, locale) {
+  const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+
+  const names = Object.keys(regions || {})
+    .map((code) => displayNames.of(code))
+    .filter(Boolean);
   if (names.length <= 3) return names.join(", ");
   return `${names.slice(0, 3).join(", ")} +${names.length - 3} more`;
 }

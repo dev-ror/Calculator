@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useState, useCallback, useEffect } from "react";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   Banner,
   BlockStack,
@@ -18,11 +19,120 @@ import {
 } from "@shopify/polaris";
 import { ClipboardIcon, PlusIcon, ViewIcon, HideIcon, DeleteIcon } from "@shopify/polaris-icons";
 import styles from "../app.module.css";
+import prisma from "../db.server";
+import { authenticate } from "../shopify.server";
+import { ensureShop, syncFunctionConfiguration } from "../backend.server";
+import { ensureDefaultZones, getShopZoneDefaults } from "../zones.server";
+import { entitlementsFor, persistBillingState, resolveBillingPlan } from "../plans.server";
+import {
+  createApiSecret,
+  decryptApiSecret,
+  encryptApiSecret,
+  hashApiSecret,
+} from "../settings-secret.server";
 
-const API_SECRET = "shipmagic_store_secret_7f3c91a2";
+const PRODUCTS_COUNT_QUERY = `#graphql
+  query SettingsProductsCount { productsCount { count } }
+`;
 
-const formatNow = () => {
-  const date = new Date();
+function json(value, fallback) {
+  try { return JSON.parse(String(value)); } catch { return fallback; }
+}
+
+async function configurationFor(shopId) {
+  let configuration = await prisma.shopConfiguration.findUnique({ where: { shopId } });
+  if (!configuration?.apiSecretEncrypted) {
+    const secret = createApiSecret();
+    configuration = await prisma.shopConfiguration.upsert({
+      where: { shopId },
+      create: { shopId, apiSecretHash: hashApiSecret(secret), apiSecretEncrypted: encryptApiSecret(secret) },
+      update: { apiSecretHash: hashApiSecret(secret), apiSecretEncrypted: encryptApiSecret(secret) },
+    });
+  }
+  return configuration;
+}
+
+export async function loader({ request }) {
+  const { billing, session } = await authenticate.admin(request);
+  const shop = await ensureShop(session.shop);
+  const previous = await prisma.shopConfiguration.findUnique({ where: { shopId: shop.id } });
+  const billingState = await resolveBillingPlan(billing);
+  const billingConfiguration = await persistBillingState(shop.id, billingState);
+  if (
+    previous?.plan !== billingState.plan ||
+    previous?.customizationsEnabled !== billingConfiguration.customizationsEnabled
+  ) {
+    await syncFunctionConfiguration(shop.id).catch(() => null);
+  }
+  const configuration = await configurationFor(shop.id);
+  return {
+    settings: configuration,
+    apiSecret: decryptApiSecret(configuration.apiSecretEncrypted),
+    entitlements: entitlementsFor(billingState.plan),
+  };
+}
+
+export async function action({ request }) {
+  const { admin, billing, session } = await authenticate.admin(request);
+  const shop = await ensureShop(session.shop);
+  const billingState = await resolveBillingPlan(billing);
+  const configuration = await persistBillingState(shop.id, billingState);
+  const permissions = entitlementsFor(billingState.plan);
+  const data = await request.formData();
+  const intent = String(data.get("intent") ?? "save");
+
+  if (intent === "syncZones") {
+    const defaults = await getShopZoneDefaults(admin);
+    await ensureDefaultZones(shop.id, defaults);
+    const updated = await prisma.shopConfiguration.update({ where: { shopId: shop.id }, data: { zonesLastSyncedAt: new Date() } });
+    return { ok: true, intent, syncedAt: updated.zonesLastSyncedAt };
+  }
+  if (intent === "syncProducts") {
+    const response = await admin.graphql(PRODUCTS_COUNT_QUERY);
+    const payload = await response.json();
+    if (payload.errors?.length) return { ok: false, error: "Unable to sync products." };
+    const updated = await prisma.shopConfiguration.update({ where: { shopId: shop.id }, data: { productsLastSyncedAt: new Date() } });
+    return { ok: true, intent, syncedAt: updated.productsLastSyncedAt, count: payload.data?.productsCount?.count ?? 0 };
+  }
+  if (intent === "regenerateSecret") {
+    const secret = createApiSecret();
+    await prisma.shopConfiguration.update({
+      where: { shopId: shop.id },
+      data: { apiSecretHash: hashApiSecret(secret), apiSecretEncrypted: encryptApiSecret(secret) },
+    });
+    return { ok: true, intent, apiSecret: secret };
+  }
+
+  const shippingRatesEnabled = data.get("shippingRatesEnabled") === "true";
+  const customizationsEnabled = data.get("customizationsEnabled") === "true";
+  if (shippingRatesEnabled && !permissions.shippingRatesLive) return { ok: false, error: "The Pro plan is required for live Shipping Rates." };
+  if (customizationsEnabled && !permissions.customizationsLive) return { ok: false, error: "The Starter plan or higher is required for live Shipping Customizations." };
+  const blendMode = String(data.get("blendMode") ?? "add");
+  if (!["add", "lowest", "highest"].includes(blendMode)) return { ok: false, error: "Invalid blending mode." };
+  const contactEmail = String(data.get("contactEmail") ?? "").trim();
+  if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) return { ok: false, error: "Enter a valid contact email." };
+
+  await prisma.shopConfiguration.update({
+    where: { shopId: shop.id },
+    data: {
+      shippingRatesEnabled,
+      customizationsEnabled,
+      autoProductSyncEnabled: data.get("autoProductSyncEnabled") === "true",
+      blendMode,
+      contactEmail: contactEmail || null,
+      basicBlendLimits: json(data.get("basicBlendLimits"), null),
+      advancedBlendRules: json(data.get("advancedBlendRules"), []),
+      version: { increment: 1 },
+    },
+  });
+  if (configuration.customizationsEnabled !== customizationsEnabled) {
+    await syncFunctionConfiguration(shop.id);
+  }
+  return { ok: true, intent: "save" };
+}
+
+const formatDate = (value) => {
+  const date = new Date(value);
   return date.toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -65,20 +175,24 @@ function SettingsRow({ children, control }) {
 }
 
 export default function SettingsPage() {
+  const loaded = useLoaderData();
+  const fetcher = useFetcher();
+  const shopify = useAppBridge();
   const navigate = useNavigate();
-  const [shippingRates, setShippingRates] = useState(false);
-  const [shippingCustomizations, setShippingCustomizations] = useState(false);
-  const [autoProductSync, setAutoProductSync] = useState(false);
-  const [blendMode, setBlendMode] = useState("add");
+  const [shippingRates, setShippingRates] = useState(loaded.settings.shippingRatesEnabled);
+  const [shippingCustomizations, setShippingCustomizations] = useState(loaded.settings.customizationsEnabled);
+  const [autoProductSync, setAutoProductSync] = useState(loaded.settings.autoProductSyncEnabled);
+  const [blendMode, setBlendMode] = useState(loaded.settings.blendMode);
   const [secretVisible, setSecretVisible] = useState(false);
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactEmail, setContactEmail] = useState(loaded.settings.contactEmail ?? "");
+  const [apiSecret, setApiSecret] = useState(loaded.apiSecret);
   const [copied, setCopied] = useState(false);
 
   // --- SYNCING STATES ---
   const [isSyncingZones, setIsSyncingZones] = useState(false);
-  const [zonesDate, setZonesDate] = useState("13 Jul 2026, 12:09");
+  const [zonesDate, setZonesDate] = useState(loaded.settings.zonesLastSyncedAt ? formatDate(loaded.settings.zonesLastSyncedAt) : "Not synced yet");
   const [isSyncingProducts, setIsSyncingProducts] = useState(false);
-  const [productsDate, setProductsDate] = useState("Not synced yet");
+  const [productsDate, setProductsDate] = useState(loaded.settings.productsLastSyncedAt ? formatDate(loaded.settings.productsLastSyncedAt) : "Not synced yet");
 
   // --- MODAL STATES ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,27 +208,21 @@ export default function SettingsPage() {
   const [deliveryMax, setDeliveryMax] = useState("");
 
   // --- SAVED ADVANCED BLENDING RULES ---
-  const [advancedRules, setAdvancedRules] = useState([]);
+  const [advancedRules, setAdvancedRules] = useState(loaded.settings.advancedBlendRules ?? []);
 
   // --- DYNAMIC ROWS STATES (Basic Blending) ---
-  const [limitRatesToggle, setLimitRatesToggle] = useState(false);
-  const [rateRows, setRateRows] = useState([{ name: "", max: "", min: "" }]);
+  const [limitRatesToggle, setLimitRatesToggle] = useState(Boolean(loaded.settings.basicBlendLimits));
+  const [rateRows, setRateRows] = useState(loaded.settings.basicBlendLimits ?? [{ name: "", max: "", min: "" }]);
 
   // --- HANDLERS ---
   const handleSyncZones = () => {
     setIsSyncingZones(true);
-    setTimeout(() => {
-      setIsSyncingZones(false);
-      setZonesDate(formatNow());
-    }, 10000);
+    fetcher.submit({ intent: "syncZones" }, { method: "post" });
   };
 
   const handleSyncProducts = () => {
     setIsSyncingProducts(true);
-    setTimeout(() => {
-      setIsSyncingProducts(false);
-      setProductsDate(formatNow());
-    }, 10000);
+    fetcher.submit({ intent: "syncProducts" }, { method: "post" });
   };
 
   const resetBlendForm = () => {
@@ -162,9 +270,47 @@ export default function SettingsPage() {
     setAdvancedRules((rules) => rules.filter((rule) => rule.id !== id));
 
   const copySecret = async () => {
-    await navigator.clipboard?.writeText(API_SECRET);
+    await navigator.clipboard?.writeText(apiSecret);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    setIsSyncingZones(false);
+    setIsSyncingProducts(false);
+    if (fetcher.data.error) shopify.toast.show(fetcher.data.error, { isError: true });
+    if (fetcher.data.ok) shopify.toast.show(fetcher.data.intent === "save" ? "Settings saved" : "Completed successfully");
+    if (fetcher.data.intent === "syncZones") setZonesDate(formatDate(fetcher.data.syncedAt));
+    if (fetcher.data.intent === "syncProducts") setProductsDate(formatDate(fetcher.data.syncedAt));
+    if (fetcher.data.apiSecret) { setApiSecret(fetcher.data.apiSecret); setSecretVisible(true); }
+  }, [fetcher.data, fetcher.state, shopify]);
+
+  const saveSettings = () => fetcher.submit({
+    intent: "save",
+    shippingRatesEnabled: String(shippingRates),
+    customizationsEnabled: String(shippingCustomizations),
+    autoProductSyncEnabled: String(autoProductSync),
+    blendMode,
+    contactEmail,
+    basicBlendLimits: JSON.stringify(limitRatesToggle ? rateRows : null),
+    advancedBlendRules: JSON.stringify(advancedRules),
+  }, { method: "post" });
+
+  const setRatesMode = (enabled) => {
+    if (enabled && !loaded.entitlements.shippingRatesLive) {
+      shopify.toast.show("Upgrade to Pro to enable live Shipping Rates.", { isError: true });
+      return;
+    }
+    setShippingRates(enabled);
+  };
+
+  const setCustomizationsMode = (enabled) => {
+    if (enabled && !loaded.entitlements.customizationsLive) {
+      shopify.toast.show("Upgrade to Starter to enable live Shipping Customizations.", { isError: true });
+      return;
+    }
+    setShippingCustomizations(enabled);
   };
 
   // Logic to add/remove/update rows
@@ -181,7 +327,7 @@ export default function SettingsPage() {
       <Page
         title="Settings"
         backAction={{ content: "Back", onAction: () => navigate(-1) }}
-        primaryAction={{ content: "Save", onAction: () => { } }}
+        primaryAction={{ content: "Save", onAction: saveSettings, loading: fetcher.state !== "idle" }}
         secondaryActions={[{ content: "Cancel", onAction: () => navigate(-1) }]}
       >
         <BlockStack gap="500">
@@ -190,7 +336,7 @@ export default function SettingsPage() {
           <BlockStack gap="200">
             <Text as="h2" variant="headingSm">App Modes</Text>
             <Card padding="0">
-              <SettingsRow control={<Toggle checked={shippingRates} onChange={setShippingRates} label="Enable Shipping Rates" />}>
+              <SettingsRow control={<Toggle checked={shippingRates} onChange={setRatesMode} label="Enable Shipping Rates" />}>
                 <BlockStack gap="050">
                   <Text as="p" variant="headingSm">Shipping Rates</Text>
                   <Text as="p" tone="subdued">To test, use "shipmagic" as first name at checkout.</Text>
@@ -198,7 +344,7 @@ export default function SettingsPage() {
                 </BlockStack>
               </SettingsRow>
               <Divider />
-              <SettingsRow control={<Toggle checked={shippingCustomizations} onChange={setShippingCustomizations} label="Enable Shipping Customizations" />}>
+              <SettingsRow control={<Toggle checked={shippingCustomizations} onChange={setCustomizationsMode} label="Enable Shipping Customizations" />}>
                 <BlockStack gap="050">
                   <Text as="p" variant="headingSm">Shipping Customizations</Text>
                   <Text as="p" tone="subdued">To test, use "shipmagic" as first name at checkout.</Text>
@@ -442,7 +588,7 @@ export default function SettingsPage() {
                   <TextField
                     label="Store API secret"
                     labelHidden
-                    value={secretVisible ? API_SECRET : "••••••••••••••••••••••••"}
+                    value={secretVisible ? apiSecret : "••••••••••••••••••••••••"}
                     readOnly
                     autoComplete="off"
                   />
@@ -453,7 +599,7 @@ export default function SettingsPage() {
                   <Button icon={ClipboardIcon} onClick={copySecret} />
                 </div>
                 <Text as="p" tone="subdued">{copied ? "Secret copied." : "Share this secret with other stores to allow them to clone your configuration."}</Text>
-                <Box><Button variant="primary" tone="critical">Regenerate Secret</Button></Box>
+                <Box><Button variant="primary" tone="critical" onClick={() => fetcher.submit({ intent: "regenerateSecret" }, { method: "post" })}>Regenerate Secret</Button></Box>
               </BlockStack>
             </Card>
           </BlockStack>

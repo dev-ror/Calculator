@@ -239,9 +239,9 @@
     }
   },
   "reactRouterConfig": {
-    "appDirectory": "/Users/mac/Documents/offside/Calculator/apps/shopify-app/app",
+    "appDirectory": "/Users/waleed/Desktop/new_folder/calculator/apps/shopify-app/app",
     "basename": "/",
-    "buildDirectory": "/Users/mac/Documents/offside/Calculator/apps/shopify-app/build",
+    "buildDirectory": "/Users/waleed/Desktop/new_folder/calculator/apps/shopify-app/build",
     "future": {
       "unstable_optimizeDeps": false,
       "v8_passThroughRequests": false,

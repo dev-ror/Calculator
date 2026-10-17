@@ -111,9 +111,15 @@ export function build({ shop, customizations, rateRules, asOf = new Date() }) {
     throw new TypeError("Shop was not found");
   }
 
+  const liveCustomizationPlans = new Set(["STARTER", "PRO", "PRO_PLUS"]);
+  const customizationEntitled = liveCustomizationPlans.has(
+    String(shop.configuration?.plan ?? "SANDBOX").toUpperCase(),
+  );
+
   return {
     shop: { ...shop },
-    testMode: shop.configuration?.customizationsEnabled !== true,
+    testMode:
+      !customizationEntitled || shop.configuration?.customizationsEnabled !== true,
     customerTags: conditionTags(customizations, "customer_tag"),
     productTags: conditionTags(customizations, "product_tag"),
     customizations: orderedCustomizations(customizations, asOf),

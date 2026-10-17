@@ -52,6 +52,16 @@ model ShopConfiguration {
   autoProductSyncEnabled Boolean  @default(false)
   blendMode              String   @default("add")
   contactEmail           String?
+  plan                   String   @default("SANDBOX")
+  billingCycle           String?
+  billingSubscriptionId  String?
+  billingStatus          String   @default("INACTIVE")
+  apiSecretHash          String?  @unique
+  apiSecretEncrypted     String?
+  zonesLastSyncedAt      DateTime?
+  productsLastSyncedAt   DateTime?
+  basicBlendLimits       Json?
+  advancedBlendRules     Json?
   version                Int      @default(1)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt

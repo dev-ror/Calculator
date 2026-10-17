@@ -11,6 +11,7 @@ import {
 import { unauthenticated } from "../shopify.server";
 import prisma from "../db.server";
 import { matchZone } from "../zones.server";
+import { entitlementsFor } from "../plans.server";
 
 const responseHeaders = {
   "Cache-Control": "no-store",
@@ -44,6 +45,17 @@ export const action = async ({ request }) => {
       payload,
       shop.id,
     );
+    const configuration = await prisma.shopConfiguration.findUnique({
+      where: { shopId: shop.id },
+    });
+    const canUseLiveRates =
+      configuration?.shippingRatesEnabled === true &&
+      entitlementsFor(configuration.plan).shippingRatesLive;
+    const checkoutName = String(
+      mappedRequest.destination?.name ?? mappedRequest.destination?.firstName ?? "",
+    ).trim().toLowerCase();
+    const isTestCheckout = checkoutName.split(/\s+/)[0] === "shipmagic";
+    if (!canUseLiveRates && !isTestCheckout) return emptyRates();
     const zones = await prisma.zone.findMany({
       where: { shopId: shop.id },
       orderBy: { createdAt: "asc" },

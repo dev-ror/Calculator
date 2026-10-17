@@ -1,6 +1,71 @@
 import prisma from "./db.server";
 import { REGION_MAP } from "./constants/regions";
 
+const SHOP_ZONE_DEFAULTS_QUERY = `#graphql
+  query ShopZoneDefaults {
+    shop {
+      currencyCode
+    }
+    backupRegion {
+      ... on MarketRegionCountry {
+        code
+      }
+    }
+    shopLocales {
+      locale
+      primary
+    }
+  }
+`;
+
+export async function getShopZoneDefaults(admin) {
+  const response = await admin.graphql(SHOP_ZONE_DEFAULTS_QUERY);
+  const payload = await response.json();
+
+  if (payload.errors?.length) {
+    throw new Error("Unable to read Shopify market, currency, and locale settings");
+  }
+
+  const shopDefaults = {
+    countryCode: String(payload.data?.backupRegion?.code || "").toUpperCase(),
+    currencyCode: String(payload.data?.shop?.currencyCode || "").toUpperCase(),
+    locale: String(
+      payload.data?.shopLocales?.find((locale) => locale.primary)?.locale || "",
+    ),
+  };
+
+  if (
+    !REGION_MAP[shopDefaults.countryCode] ||
+    !shopDefaults.currencyCode ||
+    !shopDefaults.locale
+  ) {
+    throw new Error("Shopify returned incomplete market, currency, or locale settings");
+  }
+
+  return shopDefaults;
+}
+
+function fullCountryRegions(countryCode) {
+  const country = REGION_MAP[countryCode];
+  return {
+    [countryCode]: country?.provinces.map((province) => province.code) || [],
+  };
+}
+
+function isFullSingleCountry(regions) {
+  const entries = Object.entries(regions || {});
+  if (entries.length !== 1) return false;
+
+  const [countryCode, provinces] = entries[0];
+  const country = REGION_MAP[countryCode];
+  if (!country || !Array.isArray(provinces)) return false;
+
+  return (
+    country.provinces.length === 0 ||
+    provinces.length === country.provinces.length
+  );
+}
+
 // Zones jinke countries dusre zones mein pehle se hain
 export async function getTaken(shopId, excludeId) {
   const zones = await prisma.zone.findMany({
@@ -83,22 +148,57 @@ export function parseRegions(raw) {
   return clean;
 }
 
-// Naye shop ke liye default zones: Domestic (US) + International (Rest of world)
-export async function ensureDefaultZones(shopId) {
-  const count = await prisma.zone.count({ where: { shopId } });
-  if (count > 0) return;
+// Keep the generated Domestic zone aligned with the Shopify store country.
+export async function ensureDefaultZones(shopId, shopDefaults = {}) {
+  const domesticCountryCode = String(shopDefaults.countryCode || "").toUpperCase();
+  if (!REGION_MAP[domesticCountryCode]) {
+    throw new Error("Shopify did not return a supported backup region");
+  }
+  const domesticRegions = fullCountryRegions(domesticCountryCode);
+  const zones = await prisma.zone.findMany({ where: { shopId } });
 
-  const us = REGION_MAP.US;
-  const usRegions = { US: us ? us.provinces.map((p) => p.code) : [] };
+  if (zones.length > 0) {
+    const domestic = zones.find(
+      (zone) => zone.name === "Domestic" && !zone.isRestOfWorld,
+    );
+
+    // Reconcile only an auto-generated full-country Domestic zone. A merchant's
+    // custom partial or multi-country zone must never be overwritten.
+    if (domestic && isFullSingleCountry(domestic.regions)) {
+      const currentCountryCode = Object.keys(domestic.regions || {})[0];
+      if (currentCountryCode !== domesticCountryCode) {
+        await prisma.zone.update({
+          where: { id: domestic.id },
+          data: {
+            regions: domesticRegions,
+            countries: countriesLabel(domesticRegions),
+          },
+        });
+      }
+    }
+    return;
+  }
 
   try {
     // ek transaction: ROW pehle, taake concurrent request par unique index fail kar de
     await prisma.$transaction([
       prisma.zone.create({
-        data: { shopId, name: "International", isRestOfWorld: true, regions: {}, countries: "Rest of world" },
+        data: {
+          shopId,
+          name: "International",
+          isRestOfWorld: true,
+          regions: {},
+          countries: "Rest of world",
+        },
       }),
       prisma.zone.create({
-        data: { shopId, name: "Domestic", isRestOfWorld: false, regions: usRegions, countries: countriesLabel(usRegions) },
+        data: {
+          shopId,
+          name: "Domestic",
+          isRestOfWorld: false,
+          regions: domesticRegions,
+          countries: countriesLabel(domesticRegions),
+        },
       }),
     ]);
   } catch (e) {

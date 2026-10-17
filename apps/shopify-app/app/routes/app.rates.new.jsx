@@ -46,9 +46,9 @@ import {
   uspsInternationalServices,
 } from "../constants/shippingRates";
 import { authenticate } from "../shopify.server";
-import { createRate, loadRateData } from "../backend.server";
+import { createRate, ensureShop, loadRateData } from "../backend.server";
 import prisma from "../db.server";
-import { ensureDefaultZones } from "../zones.server";
+import { ensureDefaultZones, getShopZoneDefaults } from "../zones.server";
 
 function zoneIdForStoredKey(zoneKey, zones) {
   const normalizedKey = String(zoneKey).toLowerCase();
@@ -104,9 +104,11 @@ function storedZoneRates(zoneRates) {
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   const id = new URL(request.url).searchParams.get("id");
-  await ensureDefaultZones(session.shop);
+  const shop = await ensureShop(session.shop);
+  const shopDefaults = await getShopZoneDefaults(admin);
+  await ensureDefaultZones(shop.id, shopDefaults);
   const storedZones = await prisma.zone.findMany({
-    where: { shopId: session.shop },
+    where: { shopId: shop.id },
     orderBy: { createdAt: "asc" },
   });
   storedZones.sort((left, right) => Number(left.isRestOfWorld) - Number(right.isRestOfWorld));
