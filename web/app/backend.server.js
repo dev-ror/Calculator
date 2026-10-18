@@ -194,7 +194,12 @@ export async function loadRateData(shopDomain, admin) {
       })),
   ]);
 
-  return { rates, rules, carrierService: carrierServiceResult };
+  return {
+    rates,
+    rules,
+    carrierService: carrierServiceResult,
+    settings: shop.configuration,
+  };
 }
 
 export async function findRatesByShop(shopDomain) {

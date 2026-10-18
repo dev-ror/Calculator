@@ -2,7 +2,7 @@
   "name": "@calculator/shopify-app",
   "private": true,
   "scripts": {
-    "build": "npm --prefix ../.. run database:generate && react-router build",
+    "build": "npm --prefix .. run database:generate && react-router build",
     "dev": "shopify app dev --use-localhost --install-mkcert",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
@@ -10,7 +10,7 @@
     "config:use": "shopify app config use",
     "env": "shopify app env",
     "start": "react-router-serve ./build/server/index.js",
-    "lint": "eslint --ignore-path ../../.gitignore --cache --cache-location ./node_modules/.cache/eslint .",
+    "lint": "eslint --ignore-path ../.gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "shopify": "shopify",
     "graphql-codegen": "graphql-codegen",
     "vite": "vite",

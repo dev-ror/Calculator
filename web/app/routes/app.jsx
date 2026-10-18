@@ -3,15 +3,20 @@ import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
-import { ensureShop } from "../backend.server";
+import { ensureCarrierService, ensureShop } from "../backend.server";
 import enTranslations from '@shopify/polaris/locales/en.json';
 import { AppProvider as PolarisProvider } from '@shopify/polaris';
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   try {
     await ensureShop(session.shop);
+    // Keep the registered carrier callback aligned with the active app URL
+    // (especially after a development tunnel changes). This is best-effort so
+    // a temporary Shopify API failure does not prevent the embedded app from
+    // loading.
+    await ensureCarrierService(session.shop, admin).catch(() => null);
   } catch {
     throw new Response("Unable to initialize shop data", { status: 500 });
   }

@@ -685,7 +685,12 @@ export default function NewShippingRateRule() {
           onAction: () => setDeleteConfirmationOpen(true),
         },
       ] : []}
-      primaryAction={{ content: "Save", onAction: save, disabled: !canSave }}
+      primaryAction={{
+        content: "Save",
+        onAction: save,
+        disabled: !canSave,
+        loading: fetcher.state !== "idle",
+      }}
     >
       <Layout>
         <Layout.Section>

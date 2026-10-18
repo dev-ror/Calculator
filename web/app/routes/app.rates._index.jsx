@@ -111,7 +111,7 @@ export default function RatesIndex() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const { rates, carrierService } = useLoaderData();
+  const { rates, carrierService, settings } = useLoaderData();
   const [pendingDelete, setPendingDelete] = useState([]);
   const {
     selectedResources,
@@ -165,6 +165,20 @@ export default function RatesIndex() {
       }}
     >
       <BlockStack gap="400">
+        {(!settings?.shippingRatesEnabled ||
+          !["PRO", "PRO_PLUS"].includes(String(settings?.plan ?? "SANDBOX").toUpperCase())) && (
+          <Banner title="App is running in test mode" tone="warning">
+            <List>
+              <List.Item>
+                Enter the first name as <Text as="span" fontWeight="semibold">shipmagic</Text>{" "}
+                on the checkout page to see your shipping rates in action.
+              </List.Item>
+              <List.Item>
+                To go live, enable Shipping Rates on the Settings page with a Pro or Pro+ plan.
+              </List.Item>
+            </List>
+          </Banner>
+        )}
    
         {!carrierService?.available && (
           <Banner

@@ -405,17 +405,19 @@ export function formatCarrierResponse(result, request) {
           Number.isFinite(Number(rate.price)) &&
           Number(rate.price) >= 0,
       )
-      .map((rate) => ({
-        ...deliveryDateFields(rate, today),
-        service_name: String(rate.name),
-        service_code: serviceCode(rate),
-        description: String(
-          rate.description || rate.rule?.name || rate.name,
-        ),
-        currency: String(
-          rate.currencyCode || request.currency || "USD",
-        ).toUpperCase(),
-        total_price: String(Math.round(Number(rate.price) * 100)),
-      })),
+      .map((rate) => {
+        const description = String(rate.description ?? "").trim();
+
+        return {
+          ...deliveryDateFields(rate, today),
+          service_name: String(rate.name),
+          service_code: serviceCode(rate),
+          ...(description ? { description } : {}),
+          currency: String(
+            rate.currencyCode || request.currency || "USD",
+          ).toUpperCase(),
+          total_price: String(Math.round(Number(rate.price) * 100)),
+        };
+      }),
   };
 }
