@@ -381,8 +381,14 @@ function deliveryDateFields(rate, today) {
     [minimumDays, maximumDays] = [maximumDays, minimumDays];
   }
 
-  const formatDate = (days) => {
-    const date = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+  const formatDate = (businessDays) => {
+    const date = new Date(today.getTime());
+    let remaining = businessDays;
+    while (remaining > 0) {
+      date.setUTCDate(date.getUTCDate() + 1);
+      const weekday = date.getUTCDay();
+      if (weekday !== 0 && weekday !== 6) remaining -= 1;
+    }
     return `${date.toISOString().slice(0, 10)} 00:00:00 +0000`;
   };
 
@@ -390,6 +396,26 @@ function deliveryDateFields(rate, today) {
     min_delivery_date: formatDate(minimumDays),
     max_delivery_date: formatDate(maximumDays),
   };
+}
+
+function expandDescription(description, today) {
+  return description.replace(/\{\{today(?:\+(\d+))?\}\}/g, (_token, offset) => {
+    const date = new Date(today.getTime());
+    let remaining = Number(offset ?? 0);
+
+    while (remaining > 0) {
+      date.setUTCDate(date.getUTCDate() + 1);
+      const weekday = date.getUTCDay();
+      if (weekday !== 0 && weekday !== 6) remaining -= 1;
+    }
+
+    return date.toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  });
 }
 
 export function formatCarrierResponse(result, request) {
@@ -406,7 +432,10 @@ export function formatCarrierResponse(result, request) {
           Number(rate.price) >= 0,
       )
       .map((rate) => {
-        const description = String(rate.description ?? "").trim();
+        const description = expandDescription(
+          String(rate.description ?? "").trim(),
+          today,
+        );
 
         return {
           ...deliveryDateFields(rate, today),

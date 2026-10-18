@@ -148,6 +148,13 @@ export const action = async ({ request }) => {
       return Response.json({ ok: false, error: error.message }, { status: 400 });
     }
 
+    if (error?.code === "P2002") {
+      return Response.json(
+        { ok: false, error: "Priority is already used by another shipping rate rule." },
+        { status: 400 },
+      );
+    }
+
     return Response.json(
       { ok: false, error: "Unable to submit rate rule." },
       { status: 500 },
