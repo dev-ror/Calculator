@@ -39,6 +39,7 @@ export default function App() {
           <s-link href="/app/videos">Example Setup Videos</s-link>
           {/* <s-link href="/app/products">Products</s-link> */}
           <s-link href="/app/billing">Billing</s-link>
+          <s-link href="/app/analytics">Analytics</s-link>
         </s-app-nav>
         <Outlet />
       </PolarisProvider>
