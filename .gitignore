@@ -6,10 +6,16 @@ node_modules
 /.cache
 /.turbo
 /.vite
-/apps/shopify-app/.turbo
-/apps/shopify-app/build
-/apps/shopify-app/public/build/
-/apps/shopify-app/public/_dev
+/.react-router/
+/.cursor/
+/.gemini/
+/web/.react-router/
+/web/.vercel/
+/web/src/database/.turbo
+/web/.turbo
+/web/build
+/web/public/build/
+/web/public/_dev
 .env
 .env.*
 
@@ -17,7 +23,8 @@ node_modules
 
 
 
-/apps/shopify-app/extensions/*/dist
+/web/extensions/*/dist
+/web/extensions/*/target/
 
 # Ignore shopify files created during app dev
 .shopify/*

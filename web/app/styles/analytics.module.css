@@ -1,0 +1,44 @@
+.analyticsPage {
+  max-width: 1440px;
+  margin: 0 auto;
+  min-height: calc(100vh - 32px);
+  padding: 8px 20px 28px;
+}
+.header { display:flex; align-items:center; gap:16px; margin:0 0 20px; }
+.headerIcon { width:58px; height:58px; display:grid; place-items:center; flex:0 0 auto; border-radius:14px; color:#fff; background:linear-gradient(145deg,#3b82f6,#2563eb); box-shadow:0 4px 10px rgba(37,99,235,.2); font-size:30px; font-weight:700; }
+.headerActions { display:flex; align-items:center; gap:12px; margin-left:auto; }
+.metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+.metricCard,.tableCard { min-width:0; }
+.metric { min-height:112px; border-left:4px solid #3b82f6; padding:4px 0 4px 14px; }
+.metric p { margin:0; }
+.metric p + p { margin-top:6px; }
+.blue { border-color:#3b82f6; }
+.green { border-color:#22c55e; }
+.red { border-color:#ef4444; }
+.gold { border-color:#eab308; }
+.charts { display:grid; grid-template-columns:1.7fr 1fr; gap:16px; }
+.barChart { min-height:250px; padding:4px 8px 0; border-bottom:1px solid #dfe3e8; }
+.chartEmpty { min-height:250px; display:grid; place-items:center; color:#6d7175; }
+.chartTooltip { display:flex; min-width:120px; flex-direction:column; gap:4px; padding:8px 10px; border:1px solid #dfe3e8; border-radius:6px; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,.1); color:#334155; font-size:12px; }
+.chartTooltip strong { font-size:13px; }
+.planMix { display:flex; align-items:center; justify-content:space-around; gap:18px; min-height:220px; }
+.donutChart { width:52%; min-width:180px; height:220px; }
+.donutValue { fill:#172b4d; font-size:26px; font-weight:700; }
+.donutLabel { fill:#6d7175; font-size:12px; }
+.planLegend { display:flex; min-width:145px; flex:1; flex-direction:column; gap:14px; }
+.legendRow { display:flex; align-items:center; justify-content:space-between; gap:16px; color:#334155; font-size:13px; }
+.legendRow em { color:#8a96a3; font-style:normal; }
+.legendName { display:flex; align-items:center; gap:8px; }
+.legendDot { width:10px; height:10px; flex:0 0 auto; border-radius:50%; }
+.toolbar { display:grid; grid-template-columns:minmax(220px,1fr) minmax(150px,auto) minmax(150px,auto) minmax(150px,auto); align-items:center; gap:12px; }
+.storeCell { display:flex; align-items:center; gap:10px; min-width:150px; font-weight:600; }
+.storeAvatar { width:32px; height:32px; display:grid; place-items:center; flex:0 0 auto; border-radius:50%; color:#fff; background:#3b82f6; font-size:11px; font-weight:700; }
+.shopId { color:#52606d; font-size:12px; word-break:break-all; }
+.billingActive { color:#07883f; font-weight:600; }
+.billingInactive { color:#6d7175; }
+.tableCard :global(.Polaris-DataTable__Table) { border-collapse:separate; border-spacing:0; }
+.tableCard :global(.Polaris-DataTable__Cell) { padding-top:13px; padding-bottom:13px; border-bottom-color:#edf0f2; }
+.tableCard :global(.Polaris-DataTable__Cell--header) { color:#52606d; background:#f8fafc; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+@media (max-width:1100px) { .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .charts { grid-template-columns:1fr; } }
+@media (max-width:760px) { .shell { padding:4px 12px 20px; } .header { align-items:flex-start; flex-wrap:wrap; } .headerActions { width:100%; margin-left:0; } .toolbar { grid-template-columns:1fr 1fr; } .toolbar > :first-child { grid-column:1 / -1; } .tableCard { overflow-x:auto; } }
+@media (max-width:520px) { .metrics { grid-template-columns:1fr; } .planMix { flex-direction:column; } .donutChart { width:100%; } .planLegend { width:100%; } .toolbar { grid-template-columns:1fr; } .toolbar > :first-child { grid-column:auto; } }

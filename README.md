@@ -25,8 +25,10 @@ shopify app init --template=https://github.com/Shopify/shopify-app-template-reac
 ### Local Development
 
 ```shell
-shopify app dev
+npm run dev
 ```
+
+The repository root is the only working directory needed. The Shopify web app lives in `web/`, and its shared backend/database packages live under `web/src/`. The single root `.env` supplies Prisma and server configuration. Use `npm run database:setup` for Prisma generation and migrations, or `npm run build` for a production build.
 
 Press P to open the URL to your app. Once you click install, you can start development.
 
@@ -79,7 +81,7 @@ For more information on the Shopify Dev MCP please read [the documentation](http
 
 ### Application Storage
 
-This app uses [Prisma](https://www.prisma.io/) with PostgreSQL for session and application data. Set `DATABASE_URL` in the repository root `.env` file to the PostgreSQL connection string. The Prisma schema and migrations are in `packages/database/prisma`.
+This app uses [Prisma](https://www.prisma.io/) with PostgreSQL for session and application data. Set `DATABASE_URL` in the repository root `.env` file to the PostgreSQL connection string. The Prisma schema and migrations are in `web/src/database/prisma`.
 
 Use the PostgreSQL connection configured by `DATABASE_URL` for local development and production.
 
