@@ -136,7 +136,7 @@ export default function Billing() {
 
   return (
     <Page
-      title="Shipping Rates"
+      title="Billing"
       backAction={{ content: "Back", onAction: () => navigate(-1) }}
       fullWidth
     >
@@ -227,7 +227,7 @@ export default function Billing() {
 
         <p className={styles.planHelp}>
           Not sure which plan to choose? Click{" "}
-          <a href="mailto:support@shipmagic.app">here</a>
+          <a href="mailto:support@offsidetech.app">here</a>
         </p>
       </div>
     </Page>

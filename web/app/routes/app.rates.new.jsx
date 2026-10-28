@@ -683,7 +683,7 @@ export default function NewShippingRateRule() {
 
   return (
     <Page
-      title={rate ? "Edit shipping rate rule" : "Add shipping rate rule"}
+      title={rate ? "Edit shipping rate rule" : "Add Shipping Rate Rule"}
       backAction={{ content: "Back", onAction: () => navigate(-1) }}
       secondaryActions={rate ? [
         {
@@ -1057,7 +1057,7 @@ export default function NewShippingRateRule() {
                       {(zoneRates[zone.id] ?? []).length === 0 ? (
                         <Banner tone="warning">
                           No rates. Customers in this zone won&apos;t see
-                          shipping rates from ShipMagic app.
+                          shipping rates from ShipFlux app.
                         </Banner>
                       ) : (
                         <BlockStack gap="0">

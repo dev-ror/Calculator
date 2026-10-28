@@ -339,7 +339,7 @@ export default function SettingsPage() {
               <SettingsRow control={<Toggle checked={shippingRates} onChange={setRatesMode} label="Enable Shipping Rates" />}>
                 <BlockStack gap="050">
                   <Text as="p" variant="headingSm">Shipping Rates</Text>
-                  <Text as="p" tone="subdued">To test, use "shipmagic" as first name at checkout.</Text>
+                  <Text as="p" tone="subdued">To test, use "shipflux" as first name at checkout.</Text>
                   <Text as="p" tone="subdued">To go live, <a href="/app/billing">upgrade</a> to "Pro" plan.</Text>
                 </BlockStack>
               </SettingsRow>
@@ -347,7 +347,7 @@ export default function SettingsPage() {
               <SettingsRow control={<Toggle checked={shippingCustomizations} onChange={setCustomizationsMode} label="Enable Shipping Customizations" />}>
                 <BlockStack gap="050">
                   <Text as="p" variant="headingSm">Shipping Customizations</Text>
-                  <Text as="p" tone="subdued">To test, use "shipmagic" as first name at checkout.</Text>
+                  <Text as="p" tone="subdued">To test, use "shipflux" as first name at checkout.</Text>
                   <Text as="p" tone="subdued">To go live, <a href="/app/billing">upgrade</a> to "Starter" plan.</Text>
                 </BlockStack>
               </SettingsRow>

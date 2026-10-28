@@ -1,0 +1,9 @@
+/Users/mac/Documents/offside/Calculator/apps/shopify-app/extensions/delivery-customization/target/wasm32-unknown-unknown/release/deps/shopify_function_wasm_api_core-54615f449898d17d.d: /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/lib.rs /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/read.rs /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/write.rs
+
+/Users/mac/Documents/offside/Calculator/apps/shopify-app/extensions/delivery-customization/target/wasm32-unknown-unknown/release/deps/libshopify_function_wasm_api_core-54615f449898d17d.rlib: /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/lib.rs /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/read.rs /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/write.rs
+
+/Users/mac/Documents/offside/Calculator/apps/shopify-app/extensions/delivery-customization/target/wasm32-unknown-unknown/release/deps/libshopify_function_wasm_api_core-54615f449898d17d.rmeta: /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/lib.rs /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/read.rs /Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/write.rs
+
+/Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/lib.rs:
+/Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/read.rs:
+/Users/mac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shopify_function_wasm_api_core-0.2.0/src/write.rs:

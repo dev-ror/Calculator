@@ -11,7 +11,7 @@ export function hashApiSecret(value) {
 }
 
 export function createApiSecret() {
-  return `shipmagic_${randomBytes(24).toString("base64url")}`;
+  return `shipflux_${randomBytes(24).toString("base64url")}`;
 }
 
 export function encryptApiSecret(value) {

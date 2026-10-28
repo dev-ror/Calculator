@@ -52,7 +52,7 @@
           {
             "groupType": "ONE_TIME_PURCHASE",
             "deliveryAddress": {
-              "firstName": "shipmagic",
+              "firstName": "shipflux",
               "address1": "123 Main Street",
               "countryCode": "US",
               "provinceCode": "NY",

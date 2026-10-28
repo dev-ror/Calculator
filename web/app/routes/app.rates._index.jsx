@@ -177,7 +177,7 @@ export default function RatesIndex() {
           <Banner title="App is running in test mode" tone="warning">
             <List>
               <List.Item>
-                Enter the first name as <Text as="span" fontWeight="semibold">shipmagic</Text>{" "}
+                Enter the first name as <Text as="span" fontWeight="semibold">shipflux</Text>{" "}
                 on the checkout page to see your shipping rates in action.
               </List.Item>
               <List.Item>
@@ -310,14 +310,14 @@ export default function RatesIndex() {
         </Card>
 
         {/* Footer Help Links */}
-        <Box paddingBlockEnd="400">
+        {/* <Box paddingBlockEnd="400">
           <InlineStack align="center" gap="100">
             <Text as="span" variant="bodyMd">
               <Link url="#learn">Learn</Link> more about Shipping Rates |{" "}
               <Link url="#troubleshoot">Troubleshoot</Link> Shipping Rates
             </Text>
           </InlineStack>
-        </Box>
+        </Box> */}
       </BlockStack>
 
       <Modal

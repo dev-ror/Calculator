@@ -35,7 +35,7 @@ export default function Index() {
           <p>Reach out to our live chat and get a free onboarding session where we will help you set up the app quickly.</p>
           <div className={styles.review}>
             <div>⭐⭐⭐⭐⭐</div>
-            <em>“The support is amazing, fast, responsive and accurate. They take time to understand your exact need and are pro-active at helping.”<br />~ Jacob Miller (Durant Cricket)</em>
+            <em>“The support is amazing, fast, responsive and accurate. They take time to understand your exact need and are pro-active at helping.”<br />~ Jason (DHC)</em>
           </div>
           <InlineStack gap="300">
             <Button
@@ -56,7 +56,7 @@ export default function Index() {
             </Button>
           </InlineStack>
         </section>
-        <section className={styles.card}>
+        {/* <section className={styles.card}>
           <Text variant="headingMd" as="h6">
             Learn how to setup the app yourself
           </Text>
@@ -67,7 +67,7 @@ export default function Index() {
           >
             Watch Videos
           </Button>
-        </section>
+        </section> */}
         <Text variant="headingMd" as="h6">
           FAQs
         </Text>
@@ -81,7 +81,7 @@ export default function Index() {
             </div>
           ))}
         </section>
-        <footer>Reach out to <a href="mailto:support@shipmagic.app">support</a> | Speedy Squirrel Apps</footer>
+        <footer>Reach out to <a href="mailto:support@offsidetech.app">support</a> | Offside Tech Apps</footer>
       </div>
     </s-page>
   );

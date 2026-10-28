@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "2dd94c0e04bec188c422c21ed8cf4e47"
-name = "Calculator"
-application_url = "https://second-starting-defiant.ngrok-free.dev"
+client_id = "7d26d1289d1fc25d9f58510443cfec9d"
+name = "ShipFlux: Shipping Calculator"
+application_url = "https://shining-hound-ready.ngrok-free.app"
 embedded = true
 
 [build]
@@ -12,15 +12,15 @@ automatically_update_urls_on_dev = true
 api_version = "2026-10"
 
   [[webhooks.subscriptions]]
-  uri = "https://example.com/webhooks/app/uninstalled"
+  uri = "https://shining-hound-ready.ngrok-free.app/webhooks/app/uninstalled"
   topics = [ "app/uninstalled" ]
 
   [[webhooks.subscriptions]]
-  uri = "https://example.com/webhooks/app/scopes_update"
+  uri = "https://shining-hound-ready.ngrok-free.app/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
   [[webhooks.subscriptions]]
-  uri = "https://example.com/webhooks/app/subscriptions_update"
+  uri = "https://shining-hound-ready.ngrok-free.app/webhooks/app/subscriptions_update"
   topics = [ "app_subscriptions/update" ]
 
 [access_scopes]
@@ -30,7 +30,7 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://second-starting-defiant.ngrok-free.dev/api/auth" ]
+redirect_urls = [ "https://shining-hound-ready.ngrok-free.app/api/auth" ]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"

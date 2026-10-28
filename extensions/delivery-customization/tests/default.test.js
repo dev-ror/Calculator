@@ -43,7 +43,7 @@ describe("Default Integration Test", () => {
     }, 10000);
   });
 
-  test("does not apply test-mode customizations without the shipmagic first name", async () => {
+  test("does not apply test-mode customizations without the shipflux first name", async () => {
     const fixture = await loadFixture(
       path.join(fixturesDir, "valid-configuration.json"),
     );

@@ -171,7 +171,7 @@ export default function CustomizationsIndex() {
           <Banner tone="warning" title="App is running in test mode">
             <List>
               <List.Item>
-                Enter the first name as <Text as="span" fontWeight="semibold">shipmagic</Text>{" "}
+                Enter the first name as <Text as="span" fontWeight="semibold">shipflux</Text>{" "}
                 on the checkout page to see the customizations in action.
               </List.Item>
               <List.Item>
@@ -288,7 +288,7 @@ export default function CustomizationsIndex() {
         </Card>
 
         {/* Footer Links */}
-        <Box paddingBlock="400">
+        {/* <Box paddingBlock="400">
           <InlineStack align="center" gap="100">
             <Text as="span" variant="bodyMd" tone="subdued">
               <Link url="#learn" removeUnderline>
@@ -301,7 +301,7 @@ export default function CustomizationsIndex() {
               Shipping Customizations
             </Text>
           </InlineStack>
-        </Box>
+        </Box> */}
       </BlockStack>
 
       <Modal
