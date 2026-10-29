@@ -18,12 +18,12 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   billing: {
-    "Starter Monthly": { trialDays: 14, lineItems: [{ amount: 14, currencyCode: "USD", interval: BillingInterval.Every30Days }] },
-    "Starter Yearly": { trialDays: 14, lineItems: [{ amount: 140, currencyCode: "USD", interval: BillingInterval.Annual }] },
-    "Pro Monthly": { trialDays: 14, lineItems: [{ amount: 39, currencyCode: "USD", interval: BillingInterval.Every30Days }] },
-    "Pro Yearly": { trialDays: 14, lineItems: [{ amount: 390, currencyCode: "USD", interval: BillingInterval.Annual }] },
-    "Pro+ Monthly": { trialDays: 14, lineItems: [{ amount: 59, currencyCode: "USD", interval: BillingInterval.Every30Days }] },
-    "Pro+ Yearly": { trialDays: 14, lineItems: [{ amount: 590, currencyCode: "USD", interval: BillingInterval.Annual }] },
+    "Starter Monthly": { trialDays: 7, lineItems: [{ amount: 14, currencyCode: "USD", interval: BillingInterval.Every30Days }] },
+    "Starter Yearly": { trialDays: 7, lineItems: [{ amount: 140, currencyCode: "USD", interval: BillingInterval.Annual }] },
+    "Pro Monthly": { trialDays: 7, lineItems: [{ amount: 39, currencyCode: "USD", interval: BillingInterval.Every30Days }] },
+    "Pro Yearly": { trialDays: 7, lineItems: [{ amount: 390, currencyCode: "USD", interval: BillingInterval.Annual }] },
+    "Pro+ Monthly": { trialDays: 7, lineItems: [{ amount: 59, currencyCode: "USD", interval: BillingInterval.Every30Days }] },
+    "Pro+ Yearly": { trialDays: 7, lineItems: [{ amount: 590, currencyCode: "USD", interval: BillingInterval.Annual }] },
   },
   future: {
     expiringOfflineAccessTokens: true,

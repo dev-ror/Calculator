@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
 import {
   Banner,
   BlockStack,
@@ -37,6 +37,19 @@ const PRODUCTS_COUNT_QUERY = `#graphql
 
 function json(value, fallback) {
   try { return JSON.parse(String(value)); } catch { return fallback; }
+}
+
+function settingsSnapshot(values) {
+  return JSON.stringify({
+    shippingRates: values.shippingRates,
+    shippingCustomizations: values.shippingCustomizations,
+    autoProductSync: values.autoProductSync,
+    blendMode: values.blendMode,
+    contactEmail: values.contactEmail,
+    advancedRules: values.advancedRules,
+    limitRatesToggle: values.limitRatesToggle,
+    rateRows: values.rateRows,
+  });
 }
 
 async function configurationFor(shopId) {
@@ -179,6 +192,16 @@ export default function SettingsPage() {
   const fetcher = useFetcher();
   const shopify = useAppBridge();
   const navigate = useNavigate();
+  const initialSnapshot = settingsSnapshot({
+    shippingRates: loaded.settings.shippingRatesEnabled,
+    shippingCustomizations: loaded.settings.customizationsEnabled,
+    autoProductSync: loaded.settings.autoProductSyncEnabled,
+    blendMode: loaded.settings.blendMode,
+    contactEmail: loaded.settings.contactEmail ?? "",
+    advancedRules: loaded.settings.advancedBlendRules ?? [],
+    limitRatesToggle: Boolean(loaded.settings.basicBlendLimits),
+    rateRows: loaded.settings.basicBlendLimits ?? [{ name: "", max: "", min: "" }],
+  });
   const [shippingRates, setShippingRates] = useState(loaded.settings.shippingRatesEnabled);
   const [shippingCustomizations, setShippingCustomizations] = useState(loaded.settings.customizationsEnabled);
   const [autoProductSync, setAutoProductSync] = useState(loaded.settings.autoProductSyncEnabled);
@@ -187,6 +210,7 @@ export default function SettingsPage() {
   const [contactEmail, setContactEmail] = useState(loaded.settings.contactEmail ?? "");
   const [apiSecret, setApiSecret] = useState(loaded.apiSecret);
   const [copied, setCopied] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState(initialSnapshot);
 
   // --- SYNCING STATES ---
   const [isSyncingZones, setIsSyncingZones] = useState(false);
@@ -213,6 +237,18 @@ export default function SettingsPage() {
   // --- DYNAMIC ROWS STATES (Basic Blending) ---
   const [limitRatesToggle, setLimitRatesToggle] = useState(Boolean(loaded.settings.basicBlendLimits));
   const [rateRows, setRateRows] = useState(loaded.settings.basicBlendLimits ?? [{ name: "", max: "", min: "" }]);
+
+  const currentSnapshot = settingsSnapshot({
+    shippingRates,
+    shippingCustomizations,
+    autoProductSync,
+    blendMode,
+    contactEmail,
+    advancedRules,
+    limitRatesToggle,
+    rateRows,
+  });
+  const hasUnsavedChanges = currentSnapshot !== savedSnapshot;
 
   // --- HANDLERS ---
   const handleSyncZones = () => {
@@ -269,6 +305,28 @@ export default function SettingsPage() {
   const removeAdvancedRule = (id) =>
     setAdvancedRules((rules) => rules.filter((rule) => rule.id !== id));
 
+  const discardChanges = () => {
+    const nextValues = {
+      shippingRates: loaded.settings.shippingRatesEnabled,
+      shippingCustomizations: loaded.settings.customizationsEnabled,
+      autoProductSync: loaded.settings.autoProductSyncEnabled,
+      blendMode: loaded.settings.blendMode,
+      contactEmail: loaded.settings.contactEmail ?? "",
+      advancedRules: loaded.settings.advancedBlendRules ?? [],
+      limitRatesToggle: Boolean(loaded.settings.basicBlendLimits),
+      rateRows: loaded.settings.basicBlendLimits ?? [{ name: "", max: "", min: "" }],
+    };
+    setShippingRates(nextValues.shippingRates);
+    setShippingCustomizations(nextValues.shippingCustomizations);
+    setAutoProductSync(nextValues.autoProductSync);
+    setBlendMode(nextValues.blendMode);
+    setContactEmail(nextValues.contactEmail);
+    setAdvancedRules(nextValues.advancedRules);
+    setLimitRatesToggle(nextValues.limitRatesToggle);
+    setRateRows(nextValues.rateRows);
+    setSavedSnapshot(settingsSnapshot(nextValues));
+  };
+
   const copySecret = async () => {
     await navigator.clipboard?.writeText(apiSecret);
     setCopied(true);
@@ -280,11 +338,14 @@ export default function SettingsPage() {
     setIsSyncingZones(false);
     setIsSyncingProducts(false);
     if (fetcher.data.error) shopify.toast.show(fetcher.data.error, { isError: true });
-    if (fetcher.data.ok) shopify.toast.show(fetcher.data.intent === "save" ? "Settings saved" : "Completed successfully");
+    if (fetcher.data.ok) {
+      shopify.toast.show(fetcher.data.intent === "save" ? "Settings saved" : "Completed successfully");
+      if (fetcher.data.intent === "save") setSavedSnapshot(currentSnapshot);
+    }
     if (fetcher.data.intent === "syncZones") setZonesDate(formatDate(fetcher.data.syncedAt));
     if (fetcher.data.intent === "syncProducts") setProductsDate(formatDate(fetcher.data.syncedAt));
     if (fetcher.data.apiSecret) { setApiSecret(fetcher.data.apiSecret); setSecretVisible(true); }
-  }, [fetcher.data, fetcher.state, shopify]);
+  }, [fetcher.data, fetcher.state, shopify, currentSnapshot]);
 
   const saveSettings = () => fetcher.submit({
     intent: "save",
@@ -327,9 +388,13 @@ export default function SettingsPage() {
       <Page
         title="Settings"
         backAction={{ content: "Back", onAction: () => navigate(-1) }}
-        primaryAction={{ content: "Save", onAction: saveSettings, loading: fetcher.state !== "idle" }}
-        secondaryActions={[{ content: "Cancel", onAction: () => navigate(-1) }]}
       >
+        <SaveBar open={hasUnsavedChanges} discardConfirmation={false}>
+          <button type="button" onClick={discardChanges}>Discard</button>
+          <button type="button" variant="primary" onClick={saveSettings} disabled={fetcher.state !== "idle"}>
+            {fetcher.state === "idle" ? "Save" : "Saving…"}
+          </button>
+        </SaveBar>
         <BlockStack gap="500">
 
           {/* APP MODES */}

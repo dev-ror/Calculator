@@ -54,7 +54,7 @@ export const action = async ({ request }) => {
     const checkoutName = String(
       mappedRequest.destination?.name ?? mappedRequest.destination?.firstName ?? "",
     ).trim().toLowerCase();
-    const isTestCheckout = checkoutName.split(/\s+/)[0] === "shipmagic";
+    const isTestCheckout = checkoutName.split(/\s+/)[0] === "shipflux";
     if (!canUseLiveRates && !isTestCheckout) return emptyRates();
     const zones = await prisma.zone.findMany({
       where: { shopId: shop.id },
