@@ -75,136 +75,222 @@
 
 /* Billing Page */
 .billingPage {
-  max-width: 1400px;
+  max-width: 1536px;
   margin: 0 auto;
-  padding: 24px 0 54px;
-  color: #303030;
+  padding: 20px 0 30px;
+  color: #111318;
 }
 :global(.Polaris-Page--fullWidth) {
-  max-width: 1400px !important;
+  max-width: 1536px !important;
   margin: 0 auto;
 }
+.billingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 0 6px 38px;
+}
+.billingHeader h1 {
+  margin: 0 0 6px;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+.billingHeader p {
+  margin: 0;
+  color: #3f4652;
+  font-size: 16px;
+}
+.billingControls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
 .billingToggle {
-  width: 220px;
-  margin: 0 auto;
+  width: 332px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 3px solid #45e997;
-  border-radius: 11px;
-  padding: 5px;
+  border: 1px solid #dce0e6;
+  border-radius: 28px;
+  padding: 3px;
   background: #fff;
+  box-shadow: 0 2px 5px rgba(20, 28, 42, .07);
 }
 .billingToggle button {
   border: 0;
-  border-radius: 8px;
+  border-radius: 24px;
   background: transparent;
-  padding: 9px 16px;
-  font: 500 16px/1.2 inherit;
-  color: #303030;
+  padding: 11px 17px;
+  font: 500 14px/1.2 inherit;
+  color: #171a21;
   cursor: pointer;
 }
+.billingToggle button span { margin-right: 7px; font-size: 15px; }
 .billingToggle .activeBillingTab {
-  background: #171717;
+  background: #ed1c2a;
   color: #fff;
 }
 .yearlyOffer {
-  text-align: center;
-  margin: 14px 0 20px;
-  font-size: 15px;
+  margin: 0;
+  padding: 13px 20px;
+  border-radius: 24px;
+  color: #dc1e2b;
+  background: #fff0f1;
+  font-size: 14px;
+  white-space: nowrap;
 }
+.offerIcon { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .pricingGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 28px;
+  gap: 16px;
 }
 .pricingCard {
-  min-height: 455px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 28px 25px 24px;
+  position: relative;
+  min-height: 608px;
+  background: linear-gradient(145deg, #fff 0%, #fff 75%, #fbfbfd 100%);
+  border: 1px solid #dfe2e8;
+  border-radius: 20px;
+  padding: 18px 22px 20px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 5px rgba(20, 28, 42, .035);
 }
+.recommendedCard {
+  border: 2px solid #f02232;
+  background: linear-gradient(160deg, #fff 0%, #fff9fa 53%, #fff0f2 100%);
+  box-shadow: 0 5px 15px rgba(239, 34, 50, .12);
+}
+.recommendedBadge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 4px 9px;
+  border-radius: 14px;
+  vertical-align: 3px;
+  color: #fff;
+  background: #ed1c2a;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.planIntro { min-height: 136px; }
+.recommendedCard .planIntro { padding-top: 0; }
 .pricingCard h2 {
   margin: 0 0 6px;
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1.15;
-  letter-spacing: -0.5px;
+  font-weight: 700;
+  letter-spacing: -.7px;
 }
 .planDescription {
   margin: 0;
+  color: #3f4652;
   min-height: 48px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .planPrice {
   display: flex;
   align-items: baseline;
-  margin: 50px 0 32px;
+  gap: 9px;
+  margin: 12px 0 3px;
   white-space: nowrap;
 }
-.planPrice span {
-  font-size: 48px;
+.planPrice strong {
+  font-size: 34px;
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -1.5px;
 }
-.planPrice small {
-  font-size: 17px;
-  margin-left: 7px;
+.planPrice span {
+  color: #4d5562;
+  font-size: 14px;
 }
+.yearlyPrice { min-height: 26px; color: #5b6371; font-size: 13px; }
+.yearlyPrice b { margin-left: 8px; padding: 4px 8px; border-radius: 14px; color: #d51d2a; background: #ffe8ea; font-size: 12px; }
 .featureList {
   list-style: none;
   padding: 0;
-  margin: 0 0 26px;
+  margin: 12px 0 24px;
+  border-top: 1px solid #e7e9ed;
+  padding-top: 16px;
   display: grid;
-  gap: 15px;
-  font-size: 14px;
+  gap: 13px;
+  font-size: 13px;
 }
 .featureList li {
   display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 10px;
+  grid-template-columns: 24px 1fr;
+  gap: 9px;
   line-height: 1.35;
 }
 .included {
-  color: #008f65;
-  font-size: 21px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #2b913d;
+  font-size: 12px;
+  font-weight: 700;
 }
 .excluded {
   color: #e51c3e;
-  font-size: 27px;
+  font-size: 22px;
   line-height: 0.8;
 }
 .buyButton,
 .currentPlanButton {
   width: 100%;
-  border-radius: 9px;
-  padding: 9px 12px;
-  font: 600 14px/1.2 inherit;
-  margin-top: auto;
+  border-radius: 12px;
+  padding: 14px 12px;
+  font: 700 14px/1.2 inherit;
+  margin-top: 0;
 }
+.pricingCard form { margin-top: auto; }
 .buyButton {
-  background: #303030;
-  color: #fff;
-  border: 1px solid #171717;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.25);
+  background: #fff;
+  color: #171a21;
+  border: 1px solid #bfc4cc;
   cursor: pointer;
 }
+.recommendedCard .buyButton { background: #ed1c2a; border-color: #ed1c2a; color: #fff; }
 .currentPlanButton {
   border: 0;
-  background: #d6d6d6;
-  color: #fff;
+  background: #e8eaee;
+  color: #68707c;
 }
 .planHelp {
-  text-align: center;
-  margin: 52px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin: 24px 0 0;
+  padding: 14px 22px;
+  border: 1px solid #e0e3e8;
+  border-radius: 20px;
+  background: rgba(255,255,255,.8);
 }
+.helpIntro { display: flex; align-items: center; gap: 14px; flex: 1; }
+.helpIcon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; color: #ed1c2a; background: #ffecee; font-size: 27px; }
+.helpIntro div { display: grid; gap: 4px; }
+.helpIntro strong { font-size: 16px; }
+.helpIntro span { color: #4d5562; font-size: 13px; }
 .planHelp a {
-  color: #06c;
+  padding: 10px 22px;
+  border-left: 1px solid #e0e3e8;
+  color: #171a21;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
 }
 @media (max-width: 900px) {
+  .billingHeader { align-items: flex-start; flex-direction: column; }
+  .billingControls { width: 100%; justify-content: space-between; }
   .pricingGrid {
-    grid-template-columns: 1fr;
-    max-width: 520px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 760px;
     margin: 0 auto;
   }
   .pricingCard {
@@ -216,24 +302,26 @@
 }
 @media (max-width: 640px) {
   .billingPage {
-    padding-top: 20px;
+    padding: 12px 0 20px;
   }
+  .billingHeader { margin-bottom: 24px; }
+  .billingHeader h1 { font-size: 28px; }
+  .billingHeader p { font-size: 15px; }
+  .billingControls { align-items: stretch; flex-direction: column; gap: 10px; }
   .billingToggle {
     width: auto;
-    max-width: 250px;
+    max-width: none;
   }
+  .yearlyOffer { text-align: center; }
+  .pricingGrid { grid-template-columns: 1fr; max-width: 430px; }
   .pricingCard {
-    padding: 28px 22px;
+    min-height: auto;
+    padding: 18px 22px 20px;
   }
-  .pricingCard h2 {
-    font-size: 27px;
-  }
-  .planPrice span {
-    font-size: 48px;
-  }
-  .planPrice small {
-    font-size: 17px;
-  }
+  .planIntro { min-height: 0; }
+  .recommendedCard .planIntro { padding-top: 0; }
+  .planHelp { align-items: stretch; flex-direction: column; gap: 10px; }
+  .planHelp a { border-left: 0; border-top: 1px solid #e0e3e8; }
 }
 
 /* Video Page */
