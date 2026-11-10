@@ -48,7 +48,7 @@ fn has_test_checkout_name(
 }
 
 fn is_test_name(first_name: &str) -> bool {
-    first_name.trim().eq_ignore_ascii_case("shipmagic")
+    first_name.trim().eq_ignore_ascii_case("shipflux")
 }
 
 #[cfg(test)]
@@ -56,9 +56,9 @@ mod tests {
     use super::is_test_name;
 
     #[test]
-    fn accepts_only_the_shipmagic_test_name() {
-        assert!(is_test_name("shipmagic"));
-        assert!(is_test_name(" ShipMagic "));
+    fn accepts_only_the_shipflux_test_name() {
+        assert!(is_test_name("shipflux"));
+        assert!(is_test_name(" ShipFlux "));
         assert!(!is_test_name("Muhammad"));
         assert!(!is_test_name(""));
     }

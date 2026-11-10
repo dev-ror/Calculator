@@ -113,7 +113,7 @@ export default function Videos() {
                         style={{ width: "100%", display: "block", aspectRatio: "16/9", objectFit: "cover" }}
                       />
                       <img
-                        src="https://shipmagic.fly.dev/assets/play-button-M-9Od2Qw.png"
+                        src="https://shipflex.fly.dev/assets/play-button-M-9Od2Qw.png"
                         alt=""
                         style={{
                           position: "absolute",

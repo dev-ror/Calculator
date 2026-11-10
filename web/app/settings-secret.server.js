@@ -7,7 +7,7 @@ function key() {
 }
 
 export function hashApiSecret(value) {
-  return createHash("sha256").update(String(value)).digest("hex");
+  return createHash("sha256").update(String(value).trim()).digest("hex");
 }
 
 export function createApiSecret() {

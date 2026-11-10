@@ -23,7 +23,7 @@ export default function Index() {
   const notify = (message) => window.shopify?.toast?.show(message);
 
   return (
-    <s-page heading="Shipping calculator: ShipMagic" inlineSize="large">
+    <s-page heading="Shipping calculator: ShipFlux" inlineSize="large">
       <div className={styles.home}>
         <Text variant="headingMd" as="h6">
           Get started

@@ -20,7 +20,7 @@ import CompleteStep from "../components/clone-store/CompleteStep";
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 import { ensureShop, syncFunctionConfiguration } from "../backend.server";
-import { hashApiSecret } from "../settings-secret.server";
+import { decryptApiSecret, hashApiSecret } from "../settings-secret.server";
 import { entitlementsFor } from "../plans.server";
 
 export async function loader({ request }) {
@@ -32,13 +32,37 @@ export async function action({ request }) {
   const { session } = await authenticate.admin(request);
   const destinationShop = await ensureShop(session.shop);
   const data = await request.formData();
-  const secret = String(data.get("secret") ?? "");
-  const sourceConfiguration = await prisma.shopConfiguration.findUnique({
+  const secret = String(data.get("secret") ?? "").trim();
+  let sourceConfiguration = await prisma.shopConfiguration.findUnique({
     where: { apiSecretHash: hashApiSecret(secret) },
     include: { shop: true },
   });
-  if (!sourceConfiguration || sourceConfiguration.shopId === destinationShop.id) {
-    return { ok: false, error: "Source store secret is invalid." };
+  // Recover secrets created before the hash column was populated, and tolerate
+  // copy/paste whitespace without exposing the plaintext secret to the client.
+  if (!sourceConfiguration && secret) {
+    const candidates = await prisma.shopConfiguration.findMany({
+      where: { apiSecretEncrypted: { not: null } },
+      include: { shop: true },
+    });
+    sourceConfiguration = candidates.find((candidate) => {
+      try {
+        return decryptApiSecret(candidate.apiSecretEncrypted) === secret;
+      } catch {
+        return false;
+      }
+    });
+    if (sourceConfiguration && sourceConfiguration.apiSecretHash !== hashApiSecret(secret)) {
+      await prisma.shopConfiguration.update({
+        where: { shopId: sourceConfiguration.shopId },
+        data: { apiSecretHash: hashApiSecret(secret) },
+      });
+    }
+  }
+  if (!sourceConfiguration) {
+    return { ok: false, error: "Source store secret is invalid. Copy the complete secret from another store's Settings page." };
+  }
+  if (sourceConfiguration.shopId === destinationShop.id) {
+    return { ok: false, error: "You cannot clone a store into itself. Use a secret from another store." };
   }
   if (data.get("intent") === "validate") return { ok: true, intent: "validate" };
 
