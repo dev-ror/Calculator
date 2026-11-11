@@ -33,7 +33,7 @@ export default function App() {
       <PolarisProvider i18n={enTranslations}>
         <s-app-nav>
           <s-link href="/app/rates">Shipping Rates</s-link>
-          <s-link href="/app/customizations">Shipping Customizations</s-link>
+          <s-link href="/app/customizations">Customizations</s-link>
           <s-link href="/app/zones">Shipping Zones</s-link>
           <s-link href="/app/settings">Settings</s-link>
           {/* <s-link href="/app/videos">Example Setup Videos</s-link> */}

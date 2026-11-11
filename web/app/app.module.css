@@ -64,6 +64,58 @@
 .home footer a {
   color: #06c;
 }
+
+/* Overview dashboard */
+.dashboard {
+  max-width: 1410px;
+  margin: 0 auto;
+  padding: 40px 0 34px;
+  color: #111318;
+}
+.dashboardHeader { margin: 0 0 38px; }
+.dashboardHeader h1 { margin: 0 0 7px; font-size: 32px; line-height: 1.1; letter-spacing: -.8px; }
+.dashboardHeader p { margin: 0; color: #3f4652; font-size: 17px; }
+.dashboardHeroGrid { display: grid; grid-template-columns: 1.7fr 1.1fr; gap: 24px; }
+.setupCard, .createHero, .statCard, .quickActions { border: 1px solid #dfe2e7; border-radius: 18px; background: #fff; box-shadow: 0 2px 5px rgba(20, 28, 42, .035); }
+.setupCard { min-height: 255px; padding: 30px 38px; display: grid; grid-template-columns: 1fr 1.15fr; gap: 30px; }
+.setupCopy { position: relative; border-right: 1px solid #dfe2e7; }
+.setupCard h2, .quickActions h2 { margin: 0 0 8px; font-size: 25px; letter-spacing: -.4px; }
+.setupCard p { margin: 0; color: #3f4652; font-size: 17px; }
+.progressRing { width: 124px; height: 124px; margin-top: 24px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#ed1c2f var(--progress), #edf0f3 0); position: relative; }
+.progressRing::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: #fff; }
+.progressRing span { z-index: 1; font-size: 25px; font-weight: 650; }
+.checkList { display: grid; align-content: center; gap: 16px; }
+.checkItem { border: 0; background: transparent; display: flex; align-items: center; gap: 15px; padding: 0; color: #252932; text-align: left; font: 500 17px/1.25 inherit; cursor: pointer; }
+.checkIcon { width: 24px; height: 24px; flex: 0 0 24px; border: 2px solid #9ba2ad; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 15px; }
+.checkComplete { border-color: #19a77a; background: #19a77a; }
+.createHero { min-height: 255px; padding: 40px; border-color: #eadde0; background: linear-gradient(135deg, #fff 0%, #fff4f5 100%); display: flex; align-items: center; justify-content: space-between; text-align: left; cursor: pointer; }
+.createHero strong { display: block; font-size: 27px; line-height: 1.15; letter-spacing: -.6px; }
+.createHero small { display: block; margin-top: 18px; color: #3f4652; font-size: 17px; line-height: 1.45; }
+.heroMark { color: #e91b31; font-size: 122px; line-height: .65; font-weight: 800; letter-spacing: -32px; transform: translateX(-12px); }
+.statGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 28px; }
+.statCard { min-height: 132px; padding: 28px 30px; display: flex; align-items: center; gap: 20px; text-align: left; cursor: pointer; }
+.statCard:hover, .createHero:hover, .checkItem:hover { border-color: #e51d32; }
+.statIcon { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 15px; display: grid; place-items: center; background: #fff0f2; color: #e51d32; font-size: 37px; font-weight: 700; }
+.statCard > span:nth-child(2) { display: grid; gap: 2px; }
+.statCard strong { font-size: 20px; }
+.statCard b { margin-top: 4px; font-size: 28px; line-height: 1; }
+.statCard small { color: #3f4652; font-size: 16px; }
+.statCard i { margin-left: auto; color: #5d6470; font-size: 38px; font-style: normal; }
+.quickActions { margin-top: 30px; padding: 28px 34px 32px; }
+.quickActions > div { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+.quickActions button { min-height: 64px; border-radius: 13px; padding: 0 36px; display: flex; align-items: center; gap: 18px; font: 650 20px inherit; cursor: pointer; }
+.quickActions button span { font-size: 33px; font-weight: 400; line-height: 1; }
+.primaryAction { border: 1px solid #e91b31; background: #e91b31; color: #fff; }
+.secondaryAction { border: 1px solid #d2d6dc; background: #fff; color: #111318; }
+.primaryAction:hover { background: #c91529; }
+.secondaryAction:hover { border-color: #e91b31; }
+@media (max-width: 900px) {
+  .dashboard { padding: 24px 12px; }
+  .dashboardHeroGrid, .setupCard { grid-template-columns: 1fr; }
+  .setupCopy { border-right: 0; border-bottom: 1px solid #dfe2e7; padding-bottom: 24px; }
+  .progressRing { margin-top: 18px; }
+  .statGrid, .quickActions > div { grid-template-columns: 1fr; }
+}
 @media (max-width: 640px) {
   .review {
     margin: 20px 0;
@@ -73,138 +125,279 @@
   }
 }
 
+/* Settings redesign */
+.settingsPage { width: calc(100% - 96px); max-width: 1900px; margin: 0 auto; padding: 52px 0 64px; color: #111318; }
+.settingsHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin: 0 0 38px; }
+.settingsHeader h1 { margin: 0 0 7px; font-size: 34px; line-height: 1.1; letter-spacing: -.9px; }
+.settingsHeader p { margin: 0; color: #3f4652; font-size: 17px; }
+.settingsSaveButton { min-width: 118px; min-height: 52px; border: 0; border-radius: 13px; background: #171717; color: #fff; font: 650 17px inherit; cursor: pointer; box-shadow: 0 2px 3px rgba(0,0,0,.16); }
+.settingsSaveButton:disabled { opacity: .55; cursor: default; }
+.settingsTabs { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 62px; overflow: hidden; border: 1px solid #dfe2e7; border-radius: 17px; background: #fff; box-shadow: 0 2px 5px rgba(20, 28, 42, .035); }
+.settingsTabs button { min-height: 98px; border: 0; border-right: 1px solid #e5e7eb; background: #fff; color: #242831; display: flex; align-items: center; justify-content: center; gap: 17px; font: 600 19px inherit; cursor: pointer; }
+.settingsTabs button:last-child { border-right: 0; }
+.settingsTabIcon { width: 30px; height: 30px; display: inline-grid; place-items: center; color: currentColor; }
+.settingsTabIcon svg { width: 30px; height: 30px; }
+.settingsTabs .activeSettingsTab { background: #fff0f2; color: #e21d32; }
+.settingsSplitCard { min-height: 258px; display: grid; grid-template-columns: .82fr 1.25fr; align-items: center; gap: 42px; padding: 40px 52px; border: 1px solid #dfe2e7; border-radius: 18px; background: #fff; box-shadow: 0 2px 5px rgba(20, 28, 42, .035); }
+.appModeCard { min-height: 304px; }
+.settingsSplitCard h2, .settingsSectionCard h2 { margin: 0 0 8px; font-size: 25px; line-height: 1.15; letter-spacing: -.45px; }
+.settingsSplitCard p, .settingsSectionCard > p { margin: 0; color: #4b5360; font-size: 16px; line-height: 1.45; }
+.modePanel { overflow: hidden; border: 1px solid #e0e3e7; border-radius: 17px; }
+.modeRow { min-height: 74px; padding: 0 22px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #e5e7eb; }
+.modeRow:last-child { border-bottom: 0; }
+.modeRow p { color: #111318; font-size: 17px; }
+.infoDot { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 5px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 12px; font-weight: 700; }
+.modeSwitch { display: grid; grid-template-columns: 1fr 1fr; min-width: 190px; padding: 3px; border-radius: 17px; background: #f1f2f4; }
+.modeSwitch button { min-height: 38px; border: 0; border-radius: 13px; background: transparent; color: #4a515c; font: 600 15px inherit; cursor: pointer; }
+.modeSwitch .modeSelected { border: 1px solid #c9ced5; background: #fff; color: #171a20; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.syncSetting { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.syncSetting p { font-size: 15px; }
+.settingsSectionCard { padding: 34px 48px; border: 1px solid #dfe2e7; border-radius: 18px; background: #fff; box-shadow: 0 2px 5px rgba(20, 28, 42, .035); }
+.settingsSectionCard > .Polaris-Select, .settingsSectionCard > .Polaris-Labelled__Label { margin-top: 24px; }
+.settingsSectionCard .Polaris-Select { max-width: 480px; margin-top: 25px; }
+.inlineSetting { max-width: 480px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #edf0f2; display: flex; justify-content: space-between; align-items: center; }
+.inlineSetting p { color: #111318; }
+.transferKey { display: grid; gap: 12px; }
+.transferKey > p { font-size: 14px; }
+.transferKey button { justify-self: start; }
+@media (max-width: 850px) {
+  .settingsPage { width: calc(100% - 24px); padding: 24px 0 40px; }
+  .settingsHeader { margin-bottom: 24px; }
+  .settingsTabs { grid-template-columns: repeat(2, 1fr); }
+  .settingsTabs button:nth-child(2) { border-right: 0; }
+  .settingsTabs button { border-bottom: 1px solid #e5e7eb; }
+  .settingsSplitCard { grid-template-columns: 1fr; gap: 24px; padding: 26px; }
+  .settingsSectionCard { padding: 26px; }
+}
+@media (max-width: 560px) {
+  .settingsHeader { display: block; }
+  .settingsHeader button { margin-top: 18px; }
+  .settingsTabs button { min-height: 66px; font-size: 14px; gap: 8px; }
+  .settingsTabIcon, .settingsTabIcon svg { width: 24px; height: 24px; }
+  .modeRow { display: block; padding: 17px; }
+  .modeSwitch { margin-top: 12px; }
+  .syncSetting { display: block; }
+  .syncSetting button { margin-top: 14px; }
+}
+
 /* Billing Page */
 .billingPage {
-  max-width: 1400px;
+  max-width: 1536px;
   margin: 0 auto;
-  padding: 24px 0 54px;
-  color: #303030;
+  padding: 20px 0 30px;
+  color: #111318;
 }
 :global(.Polaris-Page--fullWidth) {
-  max-width: 1400px !important;
+  max-width: 1536px !important;
   margin: 0 auto;
 }
+.billingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 0 6px 38px;
+}
+.billingHeader h1 {
+  margin: 0 0 6px;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+.billingHeader p {
+  margin: 0;
+  color: #3f4652;
+  font-size: 16px;
+}
+.billingControls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
 .billingToggle {
-  width: 220px;
-  margin: 0 auto;
+  width: 332px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 3px solid #45e997;
-  border-radius: 11px;
-  padding: 5px;
+  border: 1px solid #dce0e6;
+  border-radius: 28px;
+  padding: 3px;
   background: #fff;
+  box-shadow: 0 2px 5px rgba(20, 28, 42, .07);
 }
 .billingToggle button {
   border: 0;
-  border-radius: 8px;
+  border-radius: 24px;
   background: transparent;
-  padding: 9px 16px;
-  font: 500 16px/1.2 inherit;
-  color: #303030;
+  padding: 11px 17px;
+  font: 500 14px/1.2 inherit;
+  color: #171a21;
   cursor: pointer;
 }
+.billingToggle button span { margin-right: 7px; font-size: 15px; }
 .billingToggle .activeBillingTab {
-  background: #171717;
+  background: #ed1c2a;
   color: #fff;
 }
 .yearlyOffer {
-  text-align: center;
-  margin: 14px 0 20px;
-  font-size: 15px;
+  margin: 0;
+  padding: 13px 20px;
+  border-radius: 24px;
+  color: #dc1e2b;
+  background: #fff0f1;
+  font-size: 14px;
+  white-space: nowrap;
 }
+.offerIcon { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .pricingGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 28px;
+  gap: 16px;
 }
 .pricingCard {
-  min-height: 455px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 28px 25px 24px;
+  position: relative;
+  min-height: 608px;
+  background: linear-gradient(145deg, #fff 0%, #fff 75%, #fbfbfd 100%);
+  border: 1px solid #dfe2e8;
+  border-radius: 20px;
+  padding: 18px 22px 20px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 5px rgba(20, 28, 42, .035);
 }
+.recommendedCard {
+  border: 2px solid #f02232;
+  background: linear-gradient(160deg, #fff 0%, #fff9fa 53%, #fff0f2 100%);
+  box-shadow: 0 5px 15px rgba(239, 34, 50, .12);
+}
+.recommendedBadge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 4px 9px;
+  border-radius: 14px;
+  vertical-align: 3px;
+  color: #fff;
+  background: #ed1c2a;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.planIntro { min-height: 136px; }
+.recommendedCard .planIntro { padding-top: 0; }
 .pricingCard h2 {
   margin: 0 0 6px;
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1.15;
-  letter-spacing: -0.5px;
+  font-weight: 700;
+  letter-spacing: -.7px;
 }
 .planDescription {
   margin: 0;
+  color: #3f4652;
   min-height: 48px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .planPrice {
   display: flex;
   align-items: baseline;
-  margin: 50px 0 32px;
+  gap: 9px;
+  margin: 12px 0 3px;
   white-space: nowrap;
 }
-.planPrice span {
-  font-size: 48px;
+.planPrice strong {
+  font-size: 34px;
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -1.5px;
 }
-.planPrice small {
-  font-size: 17px;
-  margin-left: 7px;
+.planPrice span {
+  color: #4d5562;
+  font-size: 14px;
 }
+.yearlyPrice { min-height: 26px; color: #5b6371; font-size: 13px; }
+.yearlyPrice b { margin-left: 8px; padding: 4px 8px; border-radius: 14px; color: #d51d2a; background: #ffe8ea; font-size: 12px; }
 .featureList {
   list-style: none;
   padding: 0;
-  margin: 0 0 26px;
+  margin: 12px 0 24px;
+  border-top: 1px solid #e7e9ed;
+  padding-top: 16px;
   display: grid;
-  gap: 15px;
-  font-size: 14px;
+  gap: 13px;
+  font-size: 13px;
 }
 .featureList li {
   display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 10px;
+  grid-template-columns: 24px 1fr;
+  gap: 9px;
   line-height: 1.35;
 }
 .included {
-  color: #008f65;
-  font-size: 21px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #2b913d;
+  font-size: 12px;
+  font-weight: 700;
 }
 .excluded {
   color: #e51c3e;
-  font-size: 27px;
+  font-size: 22px;
   line-height: 0.8;
 }
 .buyButton,
 .currentPlanButton {
   width: 100%;
-  border-radius: 9px;
-  padding: 9px 12px;
-  font: 600 14px/1.2 inherit;
-  margin-top: auto;
+  border-radius: 12px;
+  padding: 14px 12px;
+  font: 700 14px/1.2 inherit;
+  margin-top: 0;
 }
+.pricingCard form { margin-top: auto; }
 .buyButton {
-  background: #303030;
-  color: #fff;
-  border: 1px solid #171717;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.25);
+  background: #fff;
+  color: #171a21;
+  border: 1px solid #bfc4cc;
   cursor: pointer;
 }
+.recommendedCard .buyButton { background: #ed1c2a; border-color: #ed1c2a; color: #fff; }
 .currentPlanButton {
   border: 0;
-  background: #d6d6d6;
-  color: #fff;
+  background: #e8eaee;
+  color: #68707c;
 }
 .planHelp {
-  text-align: center;
-  margin: 52px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin: 24px 0 0;
+  padding: 14px 22px;
+  border: 1px solid #e0e3e8;
+  border-radius: 20px;
+  background: rgba(255,255,255,.8);
 }
+.helpIntro { display: flex; align-items: center; gap: 14px; flex: 1; }
+.helpIcon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; color: #ed1c2a; background: #ffecee; font-size: 27px; }
+.helpIntro div { display: grid; gap: 4px; }
+.helpIntro strong { font-size: 16px; }
+.helpIntro span { color: #4d5562; font-size: 13px; }
 .planHelp a {
-  color: #06c;
+  padding: 10px 22px;
+  border-left: 1px solid #e0e3e8;
+  color: #171a21;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
 }
 @media (max-width: 900px) {
+  .billingHeader { align-items: flex-start; flex-direction: column; }
+  .billingControls { width: 100%; justify-content: space-between; }
   .pricingGrid {
-    grid-template-columns: 1fr;
-    max-width: 520px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 760px;
     margin: 0 auto;
   }
   .pricingCard {
@@ -216,24 +409,26 @@
 }
 @media (max-width: 640px) {
   .billingPage {
-    padding-top: 20px;
+    padding: 12px 0 20px;
   }
+  .billingHeader { margin-bottom: 24px; }
+  .billingHeader h1 { font-size: 28px; }
+  .billingHeader p { font-size: 15px; }
+  .billingControls { align-items: stretch; flex-direction: column; gap: 10px; }
   .billingToggle {
     width: auto;
-    max-width: 250px;
+    max-width: none;
   }
+  .yearlyOffer { text-align: center; }
+  .pricingGrid { grid-template-columns: 1fr; max-width: 430px; }
   .pricingCard {
-    padding: 28px 22px;
+    min-height: auto;
+    padding: 18px 22px 20px;
   }
-  .pricingCard h2 {
-    font-size: 27px;
-  }
-  .planPrice span {
-    font-size: 48px;
-  }
-  .planPrice small {
-    font-size: 17px;
-  }
+  .planIntro { min-height: 0; }
+  .recommendedCard .planIntro { padding-top: 0; }
+  .planHelp { align-items: stretch; flex-direction: column; gap: 10px; }
+  .planHelp a { border-left: 0; border-top: 1px solid #e0e3e8; }
 }
 
 /* Video Page */
