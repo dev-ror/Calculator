@@ -143,10 +143,12 @@ export default function Billing() {
           <div className={styles.billingControls}>
             <div className={styles.billingToggle} role="tablist" aria-label="Billing cycle">
               <button type="button" role="tab" aria-selected={billingCycle === "monthly"} className={billingCycle === "monthly" ? styles.activeBillingTab : ""} onClick={() => setBillingCycle("monthly")}>
-                <span aria-hidden="true">▣</span> Monthly
+                {/* <span aria-hidden="true">▣</span>  */}
+                Monthly
               </button>
               <button type="button" role="tab" aria-selected={billingCycle === "yearly"} className={billingCycle === "yearly" ? styles.activeBillingTab : ""} onClick={() => setBillingCycle("yearly")}>
-                <span aria-hidden="true">▣</span> Yearly
+                {/* <span aria-hidden="true">▣</span>  */}
+                Yearly
               </button>
             </div>
             <div className={styles.yearlyOffer}>
@@ -212,8 +214,7 @@ export default function Billing() {
 
         <div className={styles.planHelp}>
           <div className={styles.helpIntro}><span className={styles.helpIcon}>▢</span><div><strong>Need help choosing?</strong><span>Compare all plan features or get personalized advice from our team.</span></div></div>
-          <a href="mailto:support@offsidetech.app">⚖&nbsp;&nbsp; View full comparison&nbsp;&nbsp; ›</a>
-          <a href="mailto:support@offsidetech.app">♧&nbsp;&nbsp; Contact support&nbsp;&nbsp; ›</a>
+          <a href="mailto:support@offsidetech.app">Contact support</a>
         </div>
       </div>
     </Page>
