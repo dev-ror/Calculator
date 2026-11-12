@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import styles from "../app.module.css";
 import {
   Page,
   Card,
-  EmptyState,
   Banner,
   List,
   BlockStack,
@@ -276,14 +276,83 @@ export default function CustomizationsIndex() {
               ))}
             </IndexTable>
           ) : (
-            <EmptyState
-              heading="You haven't created any customizations yet."
-              action={{
-                content: "Create Customization",
-                onAction: createCustomization,
-              }}
-              image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-            />
+            <div className={styles.customizationsEmptyState}>
+              <svg
+                className={styles.customizationsEmptyIllustration}
+                viewBox="0 0 420 220"
+                role="img"
+                aria-label="Shipping methods customization illustration"
+              >
+                <circle cx="210" cy="111" r="94" fill="#fff0f2" />
+                <rect
+                  x="88"
+                  y="27"
+                  width="244"
+                  height="169"
+                  rx="18"
+                  fill="#ffffff"
+                  stroke="#d9dde5"
+                  strokeWidth="4"
+                />
+                <circle cx="108" cy="48" r="5" fill="#cfd4dc" />
+                <circle cx="126" cy="48" r="5" fill="#cfd4dc" />
+                <circle cx="144" cy="48" r="5" fill="#cfd4dc" />
+                <line x1="88" y1="67" x2="332" y2="67" stroke="#e5e7eb" strokeWidth="3" />
+                <rect x="108" y="83" width="204" height="29" rx="10" fill="#f5f6f8" />
+                <rect x="108" y="120" width="204" height="29" rx="10" fill="#f5f6f8" />
+                <rect x="108" y="157" width="204" height="29" rx="10" fill="#f5f6f8" />
+                <text x="124" y="102" fill="#3f4858" fontSize="13" fontWeight="600">Express Shipping</text>
+                <text x="124" y="139" fill="#3f4858" fontSize="13" fontWeight="600">Standard Shipping</text>
+                <text x="124" y="176" fill="#3f4858" fontSize="13" fontWeight="600">Free Shipping</text>
+                <path d="M274 94l14 10m-14 0l14-10" stroke="#5e6674" strokeWidth="3" strokeLinecap="round" />
+                <path d="M278 130h16m-16 7h16" stroke="#5e6674" strokeWidth="3" strokeLinecap="round" />
+                <path d="M278 168l5 5 10-12" fill="none" stroke="#f21b35" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M345 24l8-12m4 18l13-7m-7 17h14" stroke="#f21b35" strokeWidth="5" strokeLinecap="round" />
+              </svg>
+              <h2 className={styles.shippingRatesEmptyHeading}>No customizations yet</h2>
+              <p className={`${styles.shippingRatesEmptyDescription} ${styles.customizationsEmptyDescription}`}>
+                Create rules to hide, rename, or sort shipping methods at checkout.
+              </p>
+              <div className={styles.customizationsEmptyFeatures}>
+                <div className={styles.customizationsFeatureCard}>
+                  <span className={styles.customizationsFeatureIcon} aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none">
+                      <path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M6.7 6.7C4.5 8 3.3 10 3 12c1.1 4 4.6 6 9 6 1.1 0 2.1-.2 3-.5M14.7 5.1c3.3.9 5.5 3.1 6.3 6.9-.2.8-.6 1.6-1.1 2.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <div>
+                    <h3>Hide rates</h3>
+                    <p>Remove specific shipping methods from checkout.</p>
+                  </div>
+                </div>
+                <div className={styles.customizationsFeatureCard}>
+                  <span className={styles.customizationsFeatureIcon} aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none">
+                      <path d="M14 4l6 6-10 10H4v-6L14 4zM13 5l6 6M4 20l5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <div>
+                    <h3>Rename rates</h3>
+                    <p>Change how shipping methods are displayed.</p>
+                  </div>
+                </div>
+                <div className={styles.customizationsFeatureCard}>
+                  <span className={styles.customizationsFeatureIcon} aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none">
+                      <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01M5 8V4m0 0L3 6m2-2l2 2M5 16v4m0 0l-2-2m2 2l2-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <div>
+                    <h3>Sort rates</h3>
+                    <p>Control the order of shipping methods.</p>
+                  </div>
+                </div>
+              </div>
+              <button type="button" className={styles.customizationsCreateButton} onClick={createCustomization}>
+                <span aria-hidden="true">+</span>
+                Create customization
+              </button>
+            </div>
           )}
         </Card>
 
